@@ -58,10 +58,15 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card"
-import { useMockStore } from "@/mocks/state"
+import {
+  selectOrdersBySLAUrgency,
+  selectPrimaryClientIdForOrder,
+  useMockStore,
+} from "@/mocks/state"
 import { getDemoNow } from "@/mocks"
 import type { Wave } from "@/mocks/types"
 
+import { SLABadge } from "@/components/shared/sla-badge"
 import { WaveStatusBadge } from "@/components/dc/status-badge"
 import { EmptyState } from "@/components/dc/empty-state"
 import {
@@ -88,13 +93,18 @@ function DispatchPage() {
   const dispatchWave = useMockStore((s) => s.dispatchWave)
   const assignWave = useMockStore((s) => s.assignWave)
   const reassignOrderToWave = useMockStore((s) => s.reassignOrderToWave)
+  const currentTenantScope = useMockStore((s) => s.currentTenantScope)
 
   const state = useMockStore.getState()
   const activeDcId = getActiveDcId(state)
-  const confirmed = React.useMemo(
-    () => unassignedConfirmed(state, activeDcId),
-    [orders, stores, activeDcId],
-  )
+  const confirmed = React.useMemo(() => {
+    const base = unassignedConfirmed(state, activeDcId).filter(
+      (o) =>
+        currentTenantScope === "all" ||
+        selectPrimaryClientIdForOrder(state, o.id) === currentTenantScope,
+    )
+    return selectOrdersBySLAUrgency(state, base)
+  }, [orders, stores, activeDcId, state, currentTenantScope])
   const dcWaves = waves.filter((w) => w.dc_id === activeDcId)
   const dcTrucks = trucks.filter((t) => t.dc_id === activeDcId)
   const dcDrivers = users.filter(
@@ -192,6 +202,7 @@ function DispatchPage() {
                       />
                     </TableHead>
                     <TableHead>Store</TableHead>
+                    <TableHead>SLA</TableHead>
                     <TableHead className="text-right">Lines</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                   </TableRow>
@@ -220,6 +231,9 @@ function DispatchPage() {
                           <div className="text-xs text-muted-foreground">
                             {o.id.slice(0, 16)}
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <SLABadge orderId={o.id} />
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {lineCount}

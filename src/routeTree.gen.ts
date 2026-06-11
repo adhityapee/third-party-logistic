@@ -15,19 +15,24 @@ import { Route as ReconciliationRouteImport } from './routes/reconciliation'
 import { Route as InTransitRouteImport } from './routes/in-transit'
 import { Route as DispatchRouteImport } from './routes/dispatch'
 import { Route as CatalogRouteImport } from './routes/catalog'
+import { Route as AllocationRouteImport } from './routes/allocation'
 import { Route as SupervisorRouteRouteImport } from './routes/supervisor/route'
 import { Route as StoreRouteRouteImport } from './routes/store/route'
 import { Route as ExecRouteRouteImport } from './routes/exec/route'
 import { Route as DriverRouteRouteImport } from './routes/driver/route'
+import { Route as ClientRouteRouteImport } from './routes/client/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SupervisorIndexRouteImport } from './routes/supervisor/index'
 import { Route as StoreIndexRouteImport } from './routes/store/index'
 import { Route as ExecIndexRouteImport } from './routes/exec/index'
 import { Route as DriverIndexRouteImport } from './routes/driver/index'
+import { Route as ClientIndexRouteImport } from './routes/client/index'
 import { Route as StoreLoginRouteImport } from './routes/store/login'
 import { Route as StoreHistoryRouteImport } from './routes/store/history'
 import { Route as StoreDraftRouteImport } from './routes/store/draft'
 import { Route as DriverLoginRouteImport } from './routes/driver/login'
+import { Route as ClientOrdersRouteImport } from './routes/client/orders'
+import { Route as ClientInventoryRouteImport } from './routes/client/inventory'
 import { Route as StoreReceiveOrderIdRouteImport } from './routes/store/receive.$orderId'
 import { Route as DriverStopStopIdRouteImport } from './routes/driver/stop.$stopId'
 
@@ -61,6 +66,11 @@ const CatalogRoute = CatalogRouteImport.update({
   path: '/catalog',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AllocationRoute = AllocationRouteImport.update({
+  id: '/allocation',
+  path: '/allocation',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SupervisorRouteRoute = SupervisorRouteRouteImport.update({
   id: '/supervisor',
   path: '/supervisor',
@@ -79,6 +89,11 @@ const ExecRouteRoute = ExecRouteRouteImport.update({
 const DriverRouteRoute = DriverRouteRouteImport.update({
   id: '/driver',
   path: '/driver',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientRouteRoute = ClientRouteRouteImport.update({
+  id: '/client',
+  path: '/client',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -106,6 +121,11 @@ const DriverIndexRoute = DriverIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DriverRouteRoute,
 } as any)
+const ClientIndexRoute = ClientIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ClientRouteRoute,
+} as any)
 const StoreLoginRoute = StoreLoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -126,6 +146,16 @@ const DriverLoginRoute = DriverLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => DriverRouteRoute,
 } as any)
+const ClientOrdersRoute = ClientOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => ClientRouteRoute,
+} as any)
+const ClientInventoryRoute = ClientInventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => ClientRouteRoute,
+} as any)
 const StoreReceiveOrderIdRoute = StoreReceiveOrderIdRouteImport.update({
   id: '/receive/$orderId',
   path: '/receive/$orderId',
@@ -139,20 +169,25 @@ const DriverStopStopIdRoute = DriverStopStopIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/client': typeof ClientRouteRouteWithChildren
   '/driver': typeof DriverRouteRouteWithChildren
   '/exec': typeof ExecRouteRouteWithChildren
   '/store': typeof StoreRouteRouteWithChildren
   '/supervisor': typeof SupervisorRouteRouteWithChildren
+  '/allocation': typeof AllocationRoute
   '/catalog': typeof CatalogRoute
   '/dispatch': typeof DispatchRoute
   '/in-transit': typeof InTransitRoute
   '/reconciliation': typeof ReconciliationRoute
   '/stores': typeof StoresRoute
   '/suggested-orders': typeof SuggestedOrdersRoute
+  '/client/inventory': typeof ClientInventoryRoute
+  '/client/orders': typeof ClientOrdersRoute
   '/driver/login': typeof DriverLoginRoute
   '/store/draft': typeof StoreDraftRoute
   '/store/history': typeof StoreHistoryRoute
   '/store/login': typeof StoreLoginRoute
+  '/client/': typeof ClientIndexRoute
   '/driver/': typeof DriverIndexRoute
   '/exec/': typeof ExecIndexRoute
   '/store/': typeof StoreIndexRoute
@@ -162,16 +197,20 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/allocation': typeof AllocationRoute
   '/catalog': typeof CatalogRoute
   '/dispatch': typeof DispatchRoute
   '/in-transit': typeof InTransitRoute
   '/reconciliation': typeof ReconciliationRoute
   '/stores': typeof StoresRoute
   '/suggested-orders': typeof SuggestedOrdersRoute
+  '/client/inventory': typeof ClientInventoryRoute
+  '/client/orders': typeof ClientOrdersRoute
   '/driver/login': typeof DriverLoginRoute
   '/store/draft': typeof StoreDraftRoute
   '/store/history': typeof StoreHistoryRoute
   '/store/login': typeof StoreLoginRoute
+  '/client': typeof ClientIndexRoute
   '/driver': typeof DriverIndexRoute
   '/exec': typeof ExecIndexRoute
   '/store': typeof StoreIndexRoute
@@ -182,20 +221,25 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/client': typeof ClientRouteRouteWithChildren
   '/driver': typeof DriverRouteRouteWithChildren
   '/exec': typeof ExecRouteRouteWithChildren
   '/store': typeof StoreRouteRouteWithChildren
   '/supervisor': typeof SupervisorRouteRouteWithChildren
+  '/allocation': typeof AllocationRoute
   '/catalog': typeof CatalogRoute
   '/dispatch': typeof DispatchRoute
   '/in-transit': typeof InTransitRoute
   '/reconciliation': typeof ReconciliationRoute
   '/stores': typeof StoresRoute
   '/suggested-orders': typeof SuggestedOrdersRoute
+  '/client/inventory': typeof ClientInventoryRoute
+  '/client/orders': typeof ClientOrdersRoute
   '/driver/login': typeof DriverLoginRoute
   '/store/draft': typeof StoreDraftRoute
   '/store/history': typeof StoreHistoryRoute
   '/store/login': typeof StoreLoginRoute
+  '/client/': typeof ClientIndexRoute
   '/driver/': typeof DriverIndexRoute
   '/exec/': typeof ExecIndexRoute
   '/store/': typeof StoreIndexRoute
@@ -207,20 +251,25 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/client'
     | '/driver'
     | '/exec'
     | '/store'
     | '/supervisor'
+    | '/allocation'
     | '/catalog'
     | '/dispatch'
     | '/in-transit'
     | '/reconciliation'
     | '/stores'
     | '/suggested-orders'
+    | '/client/inventory'
+    | '/client/orders'
     | '/driver/login'
     | '/store/draft'
     | '/store/history'
     | '/store/login'
+    | '/client/'
     | '/driver/'
     | '/exec/'
     | '/store/'
@@ -230,16 +279,20 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/allocation'
     | '/catalog'
     | '/dispatch'
     | '/in-transit'
     | '/reconciliation'
     | '/stores'
     | '/suggested-orders'
+    | '/client/inventory'
+    | '/client/orders'
     | '/driver/login'
     | '/store/draft'
     | '/store/history'
     | '/store/login'
+    | '/client'
     | '/driver'
     | '/exec'
     | '/store'
@@ -249,20 +302,25 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/client'
     | '/driver'
     | '/exec'
     | '/store'
     | '/supervisor'
+    | '/allocation'
     | '/catalog'
     | '/dispatch'
     | '/in-transit'
     | '/reconciliation'
     | '/stores'
     | '/suggested-orders'
+    | '/client/inventory'
+    | '/client/orders'
     | '/driver/login'
     | '/store/draft'
     | '/store/history'
     | '/store/login'
+    | '/client/'
     | '/driver/'
     | '/exec/'
     | '/store/'
@@ -273,10 +331,12 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ClientRouteRoute: typeof ClientRouteRouteWithChildren
   DriverRouteRoute: typeof DriverRouteRouteWithChildren
   ExecRouteRoute: typeof ExecRouteRouteWithChildren
   StoreRouteRoute: typeof StoreRouteRouteWithChildren
   SupervisorRouteRoute: typeof SupervisorRouteRouteWithChildren
+  AllocationRoute: typeof AllocationRoute
   CatalogRoute: typeof CatalogRoute
   DispatchRoute: typeof DispatchRoute
   InTransitRoute: typeof InTransitRoute
@@ -329,6 +389,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CatalogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/allocation': {
+      id: '/allocation'
+      path: '/allocation'
+      fullPath: '/allocation'
+      preLoaderRoute: typeof AllocationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/supervisor': {
       id: '/supervisor'
       path: '/supervisor'
@@ -355,6 +422,13 @@ declare module '@tanstack/react-router' {
       path: '/driver'
       fullPath: '/driver'
       preLoaderRoute: typeof DriverRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client': {
+      id: '/client'
+      path: '/client'
+      fullPath: '/client'
+      preLoaderRoute: typeof ClientRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -392,6 +466,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DriverIndexRouteImport
       parentRoute: typeof DriverRouteRoute
     }
+    '/client/': {
+      id: '/client/'
+      path: '/'
+      fullPath: '/client/'
+      preLoaderRoute: typeof ClientIndexRouteImport
+      parentRoute: typeof ClientRouteRoute
+    }
     '/store/login': {
       id: '/store/login'
       path: '/login'
@@ -420,6 +501,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DriverLoginRouteImport
       parentRoute: typeof DriverRouteRoute
     }
+    '/client/orders': {
+      id: '/client/orders'
+      path: '/orders'
+      fullPath: '/client/orders'
+      preLoaderRoute: typeof ClientOrdersRouteImport
+      parentRoute: typeof ClientRouteRoute
+    }
+    '/client/inventory': {
+      id: '/client/inventory'
+      path: '/inventory'
+      fullPath: '/client/inventory'
+      preLoaderRoute: typeof ClientInventoryRouteImport
+      parentRoute: typeof ClientRouteRoute
+    }
     '/store/receive/$orderId': {
       id: '/store/receive/$orderId'
       path: '/receive/$orderId'
@@ -436,6 +531,22 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface ClientRouteRouteChildren {
+  ClientInventoryRoute: typeof ClientInventoryRoute
+  ClientOrdersRoute: typeof ClientOrdersRoute
+  ClientIndexRoute: typeof ClientIndexRoute
+}
+
+const ClientRouteRouteChildren: ClientRouteRouteChildren = {
+  ClientInventoryRoute: ClientInventoryRoute,
+  ClientOrdersRoute: ClientOrdersRoute,
+  ClientIndexRoute: ClientIndexRoute,
+}
+
+const ClientRouteRouteWithChildren = ClientRouteRoute._addFileChildren(
+  ClientRouteRouteChildren,
+)
 
 interface DriverRouteRouteChildren {
   DriverLoginRoute: typeof DriverLoginRoute
@@ -499,10 +610,12 @@ const SupervisorRouteRouteWithChildren = SupervisorRouteRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ClientRouteRoute: ClientRouteRouteWithChildren,
   DriverRouteRoute: DriverRouteRouteWithChildren,
   ExecRouteRoute: ExecRouteRouteWithChildren,
   StoreRouteRoute: StoreRouteRouteWithChildren,
   SupervisorRouteRoute: SupervisorRouteRouteWithChildren,
+  AllocationRoute: AllocationRoute,
   CatalogRoute: CatalogRoute,
   DispatchRoute: DispatchRoute,
   InTransitRoute: InTransitRoute,

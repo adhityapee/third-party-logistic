@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { getLockedClientId } from "@/lib/permissions"
 import { useMockStore } from "@/mocks/state"
 import type { Role } from "@/mocks/types"
 
@@ -16,11 +17,14 @@ const ROLES: { id: Role; persona: string; title: string; home: string }[] = [
   { id: "exec", persona: "Pak Hadi", title: "Head of Supply Chain", home: "/exec" },
   { id: "store", persona: "Budi", title: "Store Owner", home: "/store" },
   { id: "driver", persona: "Andi", title: "Driver", home: "/driver" },
+  { id: "client", persona: "Pak Yanto", title: "Client Ops Lead, Renyah Group", home: "/client" },
 ]
 
 export function RoleSwitcher() {
   const role = useMockStore((s) => s.currentRole)
   const setRole = useMockStore((s) => s.setCurrentRole)
+  const setTenantScope = useMockStore((s) => s.setCurrentTenantScope)
+  const users = useMockStore((s) => s.users)
   const navigate = useNavigate()
   const current = ROLES.find((r) => r.id === role) ?? ROLES[0]
 
@@ -30,6 +34,12 @@ export function RoleSwitcher() {
       onValueChange={(value) => {
         if (!value) return
         setRole(value)
+        if (value === "client") {
+          const clientUser = users.find((u) => u.role === "client")
+          setTenantScope(getLockedClientId(clientUser) ?? "all")
+        } else if (role === "client") {
+          setTenantScope("all")
+        }
         const next = ROLES.find((r) => r.id === value)
         if (next) navigate({ to: next.home })
       }}

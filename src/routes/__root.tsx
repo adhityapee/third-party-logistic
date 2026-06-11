@@ -18,6 +18,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { MockupBanner } from "@/components/mockup-banner"
 import { RoleSwitcher } from "@/components/role-switcher"
 import { ScenarioSelector } from "@/components/scenario-selector"
+import { TenantSwitcher } from "@/components/shared/tenant-switcher"
 import { DevtoolsProvider } from "@/components/devtools-context"
 import { ErrorToggle } from "@/components/error-toggle"
 import { CommandPalette } from "@/components/command-palette"
@@ -59,6 +60,7 @@ function AppShell() {
           <div className="ml-auto flex items-center gap-2">
             <ErrorToggle />
             <ScenarioSelector />
+            <TenantSwitcher />
             <RoleSwitcher />
           </div>
         </header>

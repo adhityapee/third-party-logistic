@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import type {
+  CapacityAllocation,
+  Client,
   DC,
   Exception,
   InferredStock,
@@ -9,12 +11,17 @@ import type {
   POD,
   Role,
   SKU,
+  SLAContract,
+  SLAStatus,
   ScenarioId,
   Store,
+  TenantScope,
   Truck,
   User,
   Wave,
+  WarehouseZone,
 } from './types'
+import { CATEGORY_TO_CLIENT } from './fixtures/clients'
 import calmTuesday from './scenarios/calm-tuesday'
 import exceptionFriday from './scenarios/exception-friday'
 import endOfMonthSurge from './scenarios/end-of-month-surge'
@@ -32,6 +39,10 @@ export interface MockDataSlice {
   users: User[]
   exceptions: Exception[]
   pods: POD[]
+  clients: Client[]
+  slaContracts: SLAContract[]
+  warehouseZones: WarehouseZone[]
+  capacityAllocations: CapacityAllocation[]
 }
 
 export interface ConfirmOrdersInput {
@@ -111,9 +122,11 @@ export interface UpsertSkuInput {
 export interface MockState extends MockDataSlice {
   currentRole: Role
   currentScenario: ScenarioId
+  currentTenantScope: TenantScope
 
   setCurrentRole: (role: Role) => void
   setCurrentScenario: (id: ScenarioId) => void
+  setCurrentTenantScope: (scope: TenantScope) => void
   resetToScenario: (id: ScenarioId) => void
 
   // DC Ops actions
@@ -162,6 +175,10 @@ function cloneSlice(slice: MockDataSlice): MockDataSlice {
     users: slice.users.map((x) => ({ ...x })),
     exceptions: slice.exceptions.map((x) => ({ ...x })),
     pods: slice.pods.map((x) => ({ ...x })),
+    clients: slice.clients.map((x) => ({ ...x })),
+    slaContracts: slice.slaContracts.map((x) => ({ ...x })),
+    warehouseZones: slice.warehouseZones.map((x) => ({ ...x })),
+    capacityAllocations: slice.capacityAllocations.map((x) => ({ ...x })),
   }
 }
 
@@ -188,11 +205,13 @@ export const useMockStore = create<MockState>((set, get) => ({
   ...cloneSlice(SCENARIOS[DEFAULT_SCENARIO]),
   currentRole: DEFAULT_ROLE,
   currentScenario: DEFAULT_SCENARIO,
+  currentTenantScope: 'all',
 
   setCurrentRole: (role) => set({ currentRole: role }),
   setCurrentScenario: (id) => {
     get().resetToScenario(id)
   },
+  setCurrentTenantScope: (scope) => set({ currentTenantScope: scope }),
   resetToScenario: (id) => {
     set({
       ...cloneSlice(SCENARIOS[id]),
@@ -451,7 +470,12 @@ export const useMockStore = create<MockState>((set, get) => ({
     if (input.id) {
       const existing = state.skus.find((s) => s.id === input.id)
       if (existing) {
-        const updated: SKU = { ...existing, ...input, id: existing.id }
+        const updated: SKU = {
+          ...existing,
+          ...input,
+          id: existing.id,
+          client_id: CATEGORY_TO_CLIENT[input.category],
+        }
         set({
           skus: state.skus.map((s) => (s.id === existing.id ? updated : s)),
         })
@@ -464,6 +488,7 @@ export const useMockStore = create<MockState>((set, get) => ({
       code: input.code,
       name: input.name,
       category: input.category,
+      client_id: CATEGORY_TO_CLIENT[input.category],
       default_burn_per_day: input.default_burn_per_day,
       reorder_threshold_days: input.reorder_threshold_days,
       unit_price_idr: input.unit_price_idr,
@@ -587,6 +612,159 @@ export function selectClustersForDC(state: MockState, dcId: string): string[] {
     state.stores.filter((s) => s.home_dc_id === dcId).map((s) => s.cluster_id),
   )
   return Array.from(clusters).sort()
+}
+
+export function selectClientById(state: MockState, id: string): Client | undefined {
+  return state.clients.find((c) => c.id === id)
+}
+
+export function selectSkusForClient(state: MockState, clientId: string): SKU[] {
+  return state.skus.filter((s) => s.client_id === clientId)
+}
+
+export function selectPrimaryClientIdForOrder(
+  state: MockState,
+  orderId: string,
+): string | undefined {
+  const line = state.orderLines.find((l) => l.order_id === orderId)
+  if (!line) return undefined
+  return state.skus.find((s) => s.id === line.sku_id)?.client_id
+}
+
+export function selectOrdersForClient(state: MockState, clientId: string): Order[] {
+  const clientSkuIds = new Set(
+    state.skus.filter((s) => s.client_id === clientId).map((s) => s.id),
+  )
+  const orderIds = new Set(
+    state.orderLines
+      .filter((l) => clientSkuIds.has(l.sku_id))
+      .map((l) => l.order_id),
+  )
+  return state.orders.filter((o) => orderIds.has(o.id))
+}
+
+export function selectInferredStockForClient(
+  state: MockState,
+  clientId: string,
+): InferredStock[] {
+  const clientSkuIds = new Set(
+    state.skus.filter((s) => s.client_id === clientId).map((s) => s.id),
+  )
+  return state.inferredStock.filter((i) => clientSkuIds.has(i.sku_id))
+}
+
+export function selectSLAContractForClient(
+  state: MockState,
+  clientId: string,
+): SLAContract | undefined {
+  return state.slaContracts.find((c) => c.client_id === clientId)
+}
+
+export interface OrderSLA {
+  clientId?: string
+  contract?: SLAContract
+  dueAt?: string
+  status: SLAStatus
+}
+
+export function selectOrderSLA(state: MockState, orderId: string): OrderSLA {
+  const order = state.orders.find((o) => o.id === orderId)
+  if (!order) return { status: 'on_track' }
+
+  const clientId = selectPrimaryClientIdForOrder(state, orderId)
+  const contract = clientId ? selectSLAContractForClient(state, clientId) : undefined
+  if (!contract) return { clientId, status: 'on_track' }
+
+  const createdAt = new Date(order.created_at).getTime()
+  const windowMs = contract.promised_delivery_hours * 60 * 60 * 1000
+  const dueAtMs = createdAt + windowMs
+  const dueAt = new Date(dueAtMs).toISOString()
+
+  if (order.delivered_at) {
+    const deliveredAtMs = new Date(order.delivered_at).getTime()
+    return {
+      clientId,
+      contract,
+      dueAt,
+      status: deliveredAtMs <= dueAtMs ? 'on_track' : 'breached',
+    }
+  }
+
+  const nowMs = getDemoNow().getTime()
+  const remainingMs = dueAtMs - nowMs
+  let status: SLAStatus
+  if (remainingMs <= 0) {
+    status = 'breached'
+  } else if (remainingMs < windowMs * 0.25) {
+    status = 'at_risk'
+  } else {
+    status = 'on_track'
+  }
+  return { clientId, contract, dueAt, status }
+}
+
+const SLA_URGENCY_RANK: Record<SLAStatus, number> = {
+  breached: 0,
+  at_risk: 1,
+  on_track: 2,
+}
+
+export function selectOrdersBySLAUrgency(state: MockState, orders: Order[]): Order[] {
+  return [...orders].sort((a, b) => {
+    const slaA = selectOrderSLA(state, a.id)
+    const slaB = selectOrderSLA(state, b.id)
+    const rankDiff = SLA_URGENCY_RANK[slaA.status] - SLA_URGENCY_RANK[slaB.status]
+    if (rankDiff !== 0) return rankDiff
+    const dueA = slaA.dueAt ? new Date(slaA.dueAt).getTime() : Infinity
+    const dueB = slaB.dueAt ? new Date(slaB.dueAt).getTime() : Infinity
+    return dueA - dueB
+  })
+}
+
+export function selectZonesForDC(state: MockState, dcId: string): WarehouseZone[] {
+  return state.warehouseZones.filter((z) => z.dc_id === dcId)
+}
+
+export interface ZoneCapacity {
+  zone: WarehouseZone
+  client?: Client
+  allocated: number
+  used: number
+  pct: number
+}
+
+export function selectCapacityForZone(
+  state: MockState,
+  zoneId: string,
+): ZoneCapacity | undefined {
+  const zone = state.warehouseZones.find((z) => z.id === zoneId)
+  if (!zone) return undefined
+  const allocation = state.capacityAllocations.find((c) => c.zone_id === zoneId)
+  const allocated = allocation?.allocated_units ?? 0
+  const used = allocation?.used_units ?? 0
+  const pct = allocated > 0 ? Math.round((used / allocated) * 1000) / 10 : 0
+  return {
+    zone,
+    client: state.clients.find((c) => c.id === zone.client_id),
+    allocated,
+    used,
+    pct,
+  }
+}
+
+export function selectCapacityAllocationsForDC(
+  state: MockState,
+  dcId: string,
+): ZoneCapacity[] {
+  return selectZonesForDC(state, dcId)
+    .map((zone) => selectCapacityForZone(state, zone.id))
+    .filter((x): x is ZoneCapacity => x !== undefined)
+}
+
+export function selectCapacityAlerts(state: MockState): ZoneCapacity[] {
+  return state.warehouseZones
+    .map((zone) => selectCapacityForZone(state, zone.id))
+    .filter((x): x is ZoneCapacity => x !== undefined && x.pct >= 90)
 }
 
 export function selectKpiForPeriod(

@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Analisis Refactor: KDMP Marketplace (FMCG -> 3PL Multi-Tenant)</title>
+<style>
+  :root {
+    --fg: #0f172a;
+    --muted: #475569;
+    --subtle: #64748b;
+    --line: #e2e8f0;
+    --line-strong: #cbd5e1;
+    --bg: #ffffff;
+    --panel: #f8fafc;
+    --accent: #1d4ed8;
+    --accent-soft: #eff6ff;
+    --good: #047857;
+    --good-soft: #ecfdf5;
+    --warn: #b45309;
+    --warn-soft: #fffbeb;
+    --bad: #b91c1c;
+    --bad-soft: #fef2f2;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--fg);
+    background: var(--bg);
+    margin: 0;
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 64px 32px 96px;
+  }
+  header.cover {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 28px;
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 11px;
+    color: var(--subtle);
+    font-weight: 600;
+  }
+  h1 {
+    font-size: 36px;
+    line-height: 1.18;
+    margin: 8px 0 6px;
+    letter-spacing: -0.02em;
+  }
+  h2 {
+    font-size: 24px;
+    margin: 56px 0 12px;
+    letter-spacing: -0.01em;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  h3 {
+    font-size: 18px;
+    margin: 32px 0 8px;
+    letter-spacing: -0.005em;
+  }
+  h4 {
+    font-size: 14px;
+    margin: 20px 0 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+  p { margin: 10px 0; max-width: 72ch; }
+  ul, ol { padding-left: 22px; margin: 8px 0; max-width: 72ch; }
+  li { margin: 4px 0; }
+  .lede { color: var(--muted); font-size: 17px; max-width: 68ch; }
+  .meta {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: 18px;
+    row-gap: 6px;
+    font-size: 13px;
+    margin-top: 18px;
+    color: var(--muted);
+  }
+  .meta dt { color: var(--subtle); }
+  .meta dd { margin: 0; color: var(--fg); }
+  code, kbd, .mono {
+    font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+  }
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: var(--panel);
+    font-size: 12px;
+    color: var(--muted);
+    margin-right: 6px;
+  }
+  .pill.good { background: var(--good-soft); border-color: #a7f3d0; color: var(--good); }
+  .pill.warn { background: var(--warn-soft); border-color: #fde68a; color: var(--warn); }
+  .pill.bad { background: var(--bad-soft); border-color: #fecaca; color: var(--bad); }
+  .pill.accent { background: var(--accent-soft); border-color: #bfdbfe; color: var(--accent); }
+  .callout {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin: 18px 0;
+    max-width: 72ch;
+  }
+  .callout.accent { background: var(--accent-soft); border-color: #bfdbfe; }
+  .callout.warn { background: var(--warn-soft); border-color: #fde68a; }
+  .callout h4 { margin-top: 0; color: inherit; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0 8px;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    background: var(--panel);
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  tr:last-child td { border-bottom: none; }
+  .toc { columns: 2; column-gap: 32px; font-size: 14px; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .nav-li { break-inside: avoid; margin: 3px 0; }
+  .num { color: var(--subtle); margin-right: 6px; font-variant-numeric: tabular-nums; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 40px 0; }
+  .small { font-size: 13px; color: var(--muted); }
+  .banner {
+    border: 1px solid var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    margin: 24px 0 32px;
+  }
+  .banner span { font-weight: 500; color: #1e3a8a; }
+
+  /* before/after comparison */
+  .ba {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 14px 0 22px;
+  }
+  .ba-col {
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    padding: 14px 16px;
+  }
+  .ba-col.before { background: var(--panel); }
+  .ba-col.after { background: var(--good-soft); border-color: #a7f3d0; }
+  .ba-label {
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .ba-col.before .ba-label { color: var(--subtle); }
+  .ba-col.after .ba-label { color: var(--good); }
+  .ba-col p, .ba-col ul { margin: 6px 0; max-width: none; font-size: 14px; }
+  .ba-col ul { padding-left: 18px; }
+
+  /* diff table */
+  table.diff th { font-size: 12px; }
+  table.diff td.before-cell { color: var(--muted); }
+  table.diff td.after-cell { color: var(--fg); }
+  table.diff .added { color: var(--good); font-weight: 600; }
+  table.diff .removed { color: var(--bad); text-decoration: line-through; }
+  table.diff .changed { color: var(--warn); font-weight: 600; }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--muted);
+    margin: 4px 0 16px;
+    flex-wrap: wrap;
+  }
+  .legend .dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 999px;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .dot.add { background: var(--good); }
+  .dot.change { background: var(--warn); }
+  .dot.same { background: var(--line-strong); }
+
+  @media print {
+    .wrap { padding: 24px; max-width: none; }
+    .callout, table { page-break-inside: avoid; }
+  }
+  @media (max-width: 760px) {
+    .wrap { padding: 32px 18px; }
+    .ba { grid-template-columns: 1fr; }
+    .toc { columns: 1; }
+    h1 { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="cover">
+  <div class="eyebrow">Dokumen Analisis, Bukan Rencana Implementasi</div>
+  <h1>KDMP Marketplace: Dari Distributor FMCG menjadi Platform 3PL Multi-Tenant</h1>
+  <p class="lede">Penjelasan setiap poin challenge "Challenge 1: KDMP Marketplace" dalam Bahasa Indonesia, dikaitkan dengan kondisi codebase mockup KDMP saat ini, plus ringkasan visual before/after: apa yang berubah, apa yang direframe, dan apa yang baru.</p>
+  <dl class="meta">
+    <dt>Jenis dokumen</dt><dd>Analisis dan diskusi sebelum eksekusi refactor</dd>
+    <dt>Status</dt><dd><span class="pill accent">Draft untuk review</span> belum ada perubahan kode</dd>
+    <dt>Cakupan</dt><dd>Konseptual: model data, persona, dan route. Tidak membahas urutan langkah implementasi.</dd>
+    <dt>Batasan proyek</dt><dd>Tetap frontend-only, mock data only, shadcn/ui only (lihat <code>CLAUDE.md</code>)</dd>
+  </dl>
+</header>
+
+<div class="banner">
+  Konteks penting<br />
+  <span>Semua hal di bawah ini ("multi-tenant", "RBAC", "SLA engine", "kapasitas gudang") adalah simulasi di sisi frontend: tipe data baru di <code>src/mocks/types.ts</code>, fixture baru, state Zustand, dan komponen UI. Tidak ada backend, database, atau auth sungguhan yang ditambahkan, sesuai aturan keras di <code>CLAUDE.md</code>.</span>
+</div>
+
+<nav>
+  <h4 style="margin-top:0">Daftar Isi</h4>
+  <ol class="toc">
+    <li class="nav-li"><a href="#ringkasan">1. Ringkasan Pergeseran Konsep</a></li>
+    <li class="nav-li"><a href="#challenge1">2. Challenge 1: Multi-tenant Architecture</a></li>
+    <li class="nav-li"><a href="#challenge2">3. Challenge 2: Shared Inventory Ownership</a></li>
+    <li class="nav-li"><a href="#challenge3">4. Challenge 3: Client-facing Visibility</a></li>
+    <li class="nav-li"><a href="#challenge4">5. Challenge 4: Contract SLA Management</a></li>
+    <li class="nav-li"><a href="#challenge5">6. Challenge 5: Warehouse Capacity Planning</a></li>
+    <li class="nav-li"><a href="#before-after">7. Ringkasan Visual Before / After</a></li>
+    <li class="nav-li"><a href="#tidak-relevan">8. Yang Tidak Relevan / Dihilangkan</a></li>
+    <li class="nav-li"><a href="#penutup">9. Penutup</a></li>
+  </ol>
+</nav>
+
+<!-- ====================== RINGKASAN ====================== -->
+<h2 id="ringkasan"><span class="num">1.</span>Ringkasan Pergeseran Konsep</h2>
+
+<p>
+  Mockup KDMP yang ada sekarang menggambarkan satu perusahaan FMCG yang punya gudang sendiri (2 DC: Jakarta dan Bandung), katalog produk sendiri (94 SKU dari brand fiksi seperti Renyahku, Garingo, Mantul, dst), dan toko-toko yang dilayani sendiri (20 toko modern trade). Lima persona (Rina, Budi, Andi, Sari, Pak Hadi) semuanya bekerja untuk satu perusahaan yang sama, dengan satu alur: sistem menyarankan order replenishment, toko menyetujui, DC mengonfirmasi dan mengirim, driver mengantar.
+</p>
+<p>
+  Challenge ini mengubah premis dasarnya: KDMP <strong>bukan lagi pemilik barang</strong>. KDMP menjadi operator 3PL (third-party logistics) yang gudangnya dipakai bersama oleh <strong>banyak brand client</strong> (mis. Renyahku jadi satu klien, Garingo jadi klien lain, dst). KDMP menjalankan penyimpanan dan pengiriman atas nama klien-klien ini, masing-masing dengan kontrak SLA, alokasi kapasitas gudang, dan kebutuhan visibilitas dashboard sendiri.
+</p>
+<div class="callout accent">
+  <h4>Inti perubahan dalam satu kalimat</h4>
+  <p>
+    Konsep "1 perusahaan, banyak toko" berubah jadi "1 operator gudang bersama, banyak klien brand, masing-masing punya katalog, toko/outlet, kontrak SLA, dan jatah kapasitas sendiri di gudang yang sama" - dan UI yang ada (tabel, card, badge, sidebar) tetap dipakai, hanya ditambah dimensi "kepemilikan" (<code>client_id</code>) di mana-mana.
+  </p>
+</div>
+
+<!-- ====================== CHALLENGE 1 ====================== -->
+<h2 id="challenge1"><span class="num">2.</span>Challenge 1: Multi-tenant Architecture</h2>
+
+<h3>2.1 Masalahnya apa</h3>
+<p>
+  Saat ini <code>Role</code> (<code>'ops-manager' | 'store' | 'driver' | 'supervisor' | 'exec'</code>) dan <code>User</code> mengasumsikan semua orang bekerja untuk satu perusahaan yang sama. Tidak ada konsep "brand" atau "klien" sama sekali. Kalau gudang yang sama dipakai oleh banyak brand, sistem perlu tahu: data ini milik klien yang mana, dan siapa yang boleh melihatnya.
+</p>
+
+<h3>2.2 Solusi konsepnya</h3>
+<ul>
+  <li>Tambah entity baru <code>Client</code> (representasi "brand" atau "tenant"): punya <code>id</code>, <code>name</code>, <code>short_code</code> (untuk badge), warna identitas, dan status kontrak.</li>
+  <li>Tambah <code>'client'</code> ke union <code>Role</code>, untuk persona baru "perwakilan brand".</li>
+  <li>Tambah state global <code>currentTenantScope</code> di Zustand store (sejajar dengan <code>currentRole</code> dan <code>currentScenario</code> yang sudah ada), yang menentukan "sedang melihat data milik klien yang mana (atau semua, untuk staf operator)".</li>
+  <li>Komponen baru <code>TenantSwitcher</code>, dibuat dengan pola yang sama persis seperti <code>RoleSwitcher</code> dan <code>ScenarioSelector</code> yang sudah ada di topbar (<code>src/routes/__root.tsx</code>) - jadi tidak perlu sidebar atau set route baru.</li>
+</ul>
+
+<h3>2.3 "Tenant-switching tanpa duplikasi navigasi"</h3>
+<p>
+  Ini poin kunci dari challenge: jangan bikin sidebar/menu terpisah untuk tiap klien. Caranya: <strong>satu set sidebar dan route yang sama</strong> (<code>/</code>, <code>/dispatch</code>, <code>/in-transit</code>, <code>/stores</code>, dst) tetap dipakai oleh staf operator (Rina dkk). Yang berubah hanyalah <em>data yang ditampilkan</em> - difilter berdasarkan <code>currentTenantScope</code> yang dipilih lewat <code>TenantSwitcher</code> di topbar. Untuk persona <code>client</code> (brand owner), scope-nya otomatis terkunci ke klien mereka sendiri, jadi <code>TenantSwitcher</code> tidak ditampilkan untuk role ini.
+</p>
+<p>
+  Untuk "mencegah kebocoran visibilitas antar klien", ditambahkan helper guard (mis. fungsi <code>assertTenantAccess</code>) yang dicek di setiap route klien: kalau <code>currentRole === 'client'</code> dan data yang diminta punya <code>client_id</code> berbeda dari klien si user, halaman menampilkan <code>RouteError</code>/redirect, bukan datanya.
+</p>
+
+<!-- ====================== CHALLENGE 2 ====================== -->
+<h2 id="challenge2"><span class="num">3.</span>Challenge 2: Shared Inventory Ownership</h2>
+
+<h3>3.1 Masalahnya apa</h3>
+<p>
+  <code>SKU</code> dan <code>InferredStock</code> saat ini adalah katalog tunggal: 94 produk, semua dianggap milik "perusahaan" yang sama, disimpan di 2 DC. Dalam dunia 3PL, barang-barang dari brand berbeda disimpan di gudang fisik yang sama, tapi kepemilikannya beda-beda.
+</p>
+
+<h3>3.2 Solusi konsepnya</h3>
+<ul>
+  <li>Tambah field <code>client_id</code> ke <code>SKU</code> dan <code>InferredStock</code>. Secara praktis, 94 SKU yang sudah ada (Renyahku, Garingo, Mantul, Snekita, Cilukbao, Mie Pak Eko, Sehatea, Segarmu, Kopiku, Susukita, Buahria, Berseh, Lembutku, Putihgigi, Rumahku, Halusin) <strong>dikelompokkan ulang</strong> menjadi katalog milik beberapa <code>Client</code> berbeda - data fixture yang ada justru sudah pas untuk dipecah jadi beberapa "brand client".</li>
+  <li><code>Order</code> dan <code>OrderLine</code> mewarisi kepemilikan dari SKU-nya, tapi untuk memudahkan filter/badge di tabel, <code>Order</code> juga diberi field <code>client_id</code> langsung.</li>
+  <li>Entity baru untuk lokasi fisik di gudang bersama: <code>WarehouseZone</code> (zona/rak di sebuah DC, opsional dedicated untuk satu klien) dan <code>StockLocation</code> (berapa unit SKU milik klien tertentu ada di zona mana).</li>
+</ul>
+
+<h3>3.3 Bagaimana kepemilikan ditampilkan</h3>
+<p>
+  Komponen baru <code>ClientBadge</code> (chip kecil berwarna, memakai <code>Badge</code> dari shadcn yang sudah ada) ditambahkan di setiap baris tabel yang berisi data campuran dari banyak klien: <code>/catalog</code> (katalog SKU), daftar toko/outlet, daftar exception, dan tabel order di <code>/dispatch</code> dan <code>/in-transit</code>. Jadi setiap baris langsung kelihatan "ini barang/order milik klien siapa" tanpa harus membuka detail.
+</p>
+
+<!-- ====================== CHALLENGE 3 ====================== -->
+<h2 id="challenge3"><span class="num">4.</span>Challenge 3: Client-facing Visibility</h2>
+
+<h3>4.1 Masalahnya apa</h3>
+<p>
+  Lima persona yang ada sekarang (Rina, Budi, Andi, Sari, Pak Hadi) semuanya adalah orang dalam (operator atau toko/driver milik operator). Tidak ada dashboard untuk pemilik brand (klien eksternal) yang ingin memantau stok dan pengiriman barang mereka di gudang KDMP.
+</p>
+
+<h3>4.2 Solusi konsepnya</h3>
+<ul>
+  <li>Persona ke-6: <strong>"Pak Yanto, Client Ops Lead"</strong> (mewakili salah satu brand, mis. Renyahku), dengan <code>role: 'client'</code> dan home route <code>/client</code>.</li>
+  <li>Reuse maksimal dari komponen yang sudah ada:
+    <ul>
+      <li><code>/client</code> (ringkasan KPI) memakai pola kartu KPI yang sama dengan <code>/exec</code> (Pak Hadi), tapi datanya difilter ke <code>client_id</code> milik Pak Yanto.</li>
+      <li><code>/client/orders</code> memakai pola tabel yang sama dengan <code>/reconciliation</code>, tapi <strong>read-only</strong> - tombol aksi (confirm, dispatch, dll) tidak dirender sama sekali untuk role ini.</li>
+      <li><code>/client/inventory</code> memakai pola tabel stok dari <code>/suggested-orders</code>/<code>/stores</code>, difilter ke SKU milik klien tersebut.</li>
+    </ul>
+  </li>
+  <li>Modul baru <code>permissions.ts</code> berisi fungsi murni <code>canPerform(role, action)</code> (mis. <code>canConfirmOrders</code>, <code>canDispatchWave</code>, <code>canEditSku</code>) yang dipanggil komponen untuk memutuskan menampilkan tombol aksi atau tidak. Inilah simulasi "RBAC" yang diminta di Technical Considerations - murni logika frontend, tanpa server.</li>
+</ul>
+
+<!-- ====================== CHALLENGE 4 ====================== -->
+<h2 id="challenge4"><span class="num">5.</span>Challenge 4: Contract SLA Management</h2>
+
+<h3>5.1 Masalahnya apa</h3>
+<p>
+  Saat ini tidak ada konsep kontrak atau target waktu kirim. Antrian di <code>/dispatch</code> murni berdasarkan <code>created_at</code> (FIFO). Dalam dunia 3PL, tiap klien punya perjanjian layanan (SLA) berbeda - ada klien "premium" yang barangnya harus sampai dalam 6 jam, ada yang "standard" 24 jam.
+</p>
+
+<h3>5.2 Solusi konsepnya</h3>
+<ul>
+  <li>Entity baru <code>SLAContract</code>: per <code>Client</code>, berisi <code>tier</code> (<code>'standard' | 'priority' | 'premium'</code>), <code>promised_delivery_hours</code>, <code>exception_response_hours</code>, dan <code>on_time_target_pct</code>.</li>
+  <li><code>Order</code> mendapat field turunan <code>sla_due_at</code> (dihitung dari <code>created_at + promised_delivery_hours</code> kontrak klien tersebut) dan <code>sla_status</code> (<code>'on_track' | 'at_risk' | 'breached'</code>). <code>Exception</code> juga mendapat <code>sla_due_at</code> dari <code>exception_response_hours</code>.</li>
+  <li>Komponen baru <code>SLABadge</code> (varian warna hijau/kuning/merah, pakai <code>Badge</code> + CVA seperti komponen badge lain yang sudah ada) ditampilkan di <code>/dispatch</code>, <code>/in-transit</code>, <code>/reconciliation</code>, <code>/client/orders</code>, dan drill-down exception milik Sari.</li>
+</ul>
+
+<h3>5.3 "Exception perlu prioritas yang sadar SLA"</h3>
+<p>
+  Antrian <code>/dispatch</code> yang tadinya FIFO diubah jadi diurutkan berdasarkan <code>sla_status</code> (breached lebih dulu, lalu at-risk, lalu on-track) dan <code>sla_due_at</code> - lewat selector baru <code>selectOrdersBySLAUrgency</code>. Di <code>/supervisor</code> (Sari), ditambah panel "SLA at risk" yang reuse komponen drill-down exception yang sudah ada, hanya difilter ke <code>sla_status !== 'on_track'</code>.
+</p>
+
+<!-- ====================== CHALLENGE 5 ====================== -->
+<h2 id="challenge5"><span class="num">6.</span>Challenge 5: Warehouse Capacity Planning</h2>
+
+<h3>6.1 Masalahnya apa</h3>
+<p>
+  Halaman <code>/suggested-orders</code> saat ini menjawab pertanyaan "toko mana yang perlu di-restock dan berapa banyak", untuk satu perusahaan. Dalam dunia 3PL, pertanyaan operator gudang berubah jadi: "berapa banyak ruang gudang yang sedang dipakai tiap klien, dan apakah ada klien yang mendekati/melebihi jatah kapasitasnya".
+</p>
+
+<h3>6.2 Solusi konsepnya</h3>
+<ul>
+  <li>Entity baru <code>CapacityAllocation</code>: per <code>Client</code> (dan opsional per <code>WarehouseZone</code>), berisi <code>allocated_units</code> (jatah kontraktual) vs <code>used_units</code> (pemakaian aktual saat ini), per periode (mis. bulanan).</li>
+  <li>Route baru <code>/allocation</code> (untuk Rina/ops-manager): menampilkan utilisasi kapasitas per klien, memakai komponen <code>Progress</code> dari shadcn yang sudah tersedia (allocated vs used, dalam bentuk progress bar per klien/zona).</li>
+  <li>Fungsi <code>computeSuggestedOrders</code> di <code>src/mocks/engine.ts</code> direframe secara konsep menjadi <code>computeReplenishmentRequests</code>: tetap menghasilkan saran replenishment per outlet (sekarang scoped per <code>client_id</code>), tapi bukan lagi satu-satunya "pandangan utama" operator - pandangan utama operator gudang sekarang adalah alokasi kapasitas di <code>/allocation</code>.</li>
+  <li>Alur review replenishment per outlet (yang dipakai Budi di <code>/store/draft</code>) tetap jalan seperti sekarang - hanya datanya kini scoped ke klien pemilik outlet tersebut.</li>
+</ul>
+
+<!-- ====================== BEFORE/AFTER ====================== -->
+<h2 id="before-after"><span class="num">7.</span>Ringkasan Visual Before / After</h2>
+
+<p class="legend">
+  <span><span class="dot add"></span>Ditambahkan (entity/route/komponen baru)</span>
+  <span><span class="dot change"></span>Direframe / dapat field tambahan</span>
+  <span><span class="dot same"></span>Tetap, tidak berubah</span>
+</p>
+
+<h3>7.1 Model data (<code>src/mocks/types.ts</code>)</h3>
+<table class="diff">
+  <thead><tr><th style="width:46%">Sebelum</th><th>Sesudah</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="before-cell"><code>Store</code> - toko milik 1 perusahaan (id, name, address, contact, home_dc_id, cluster_id)</td>
+      <td class="after-cell"><span class="changed">Direframe jadi <strong>Outlet</strong></span> milik sebuah <code>Client</code> - tambah field <code>client_id</code></td>
+    </tr>
+    <tr>
+      <td class="before-cell"><code>SKU</code> - katalog tunggal, 94 produk, implisit milik 1 perusahaan</td>
+      <td class="after-cell"><span class="changed">+ field <code>client_id</code></span> -> katalog per-client (Renyahku/Garingo/Mantul/dst jadi <code>Client</code> terpisah)</td>
+    </tr>
+    <tr>
+      <td class="before-cell"><code>InferredStock</code> - per (store, sku)</td>
+      <td class="after-cell"><span class="changed">+ field <code>client_id</code></span></td>
+    </tr>
+    <tr>
+      <td class="before-cell"><code>Order</code> / <code>OrderLine</code> - status, source, line items</td>
+      <td class="after-cell"><span class="changed">+ <code>client_id</code>, <code>sla_due_at</code>, <code>sla_status</code></span></td>
+    </tr>
+    <tr>
+      <td class="before-cell"><code>DC</code> - gudang milik perusahaan (id, name, address, region)</td>
+      <td class="after-cell"><span class="changed">Konsep berubah jadi gudang bersama (shared warehouse)</span> yang melayani banyak client - struktur field tetap sama</td>
+    </tr>
+    <tr>
+      <td class="before-cell">-</td>
+      <td class="after-cell"><span class="added">BARU: <code>Client</code></span> (tenant/brand: id, name, short_code, logo_color, status, contract_id)</td>
+    </tr>
+    <tr>
+      <td class="before-cell">-</td>
+      <td class="after-cell"><span class="added">BARU: <code>SLAContract</code></span> (per client: tier, promised_delivery_hours, exception_response_hours, on_time_target_pct)</td>
+    </tr>
+    <tr>
+      <td class="before-cell">-</td>
+      <td class="after-cell"><span class="added">BARU: <code>WarehouseZone</code>, <code>StockLocation</code></span> (lokasi fisik per client dalam 1 DC)</td>
+    </tr>
+    <tr>
+      <td class="before-cell">-</td>
+      <td class="after-cell"><span class="added">BARU: <code>CapacityAllocation</code></span> (allocated vs used units per client/zone/periode)</td>
+    </tr>
+    <tr>
+      <td class="before-cell"><code>User</code> - punya <code>cluster_id?</code></td>
+      <td class="after-cell"><span class="changed">+ <code>client_ids?: string[]</code></span> (untuk persona client / staf dengan scope terbatas)</td>
+    </tr>
+    <tr>
+      <td class="before-cell"><code>Role</code>: <code>'ops-manager' | 'store' | 'driver' | 'supervisor' | 'exec'</code></td>
+      <td class="after-cell"><span class="added">+ <code>'client'</code></span></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>7.2 Routes & Persona</h3>
+<table class="diff">
+  <thead><tr><th style="width:46%">Sebelum</th><th>Sesudah</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="before-cell"><code>/suggested-orders</code> - rekomendasi replenishment per toko, 1 perusahaan</td>
+      <td class="after-cell"><span class="changed">Direpurpose -> <code>/allocation</code></span> (ops: tampilan kapasitas gudang per client, pakai <code>Progress</code>); review replenishment per outlet tetap di <code>/store/draft</code> (scoped per client)</td>
+    </tr>
+    <tr>
+      <td class="before-cell">5 persona: Rina, Budi, Andi, Sari, Pak Hadi</td>
+      <td class="after-cell"><span class="added">+ persona ke-6 "Pak Yanto"</span> (role <code>client</code>), route group <code>/client/*</code> (index, inventory, orders, sla)</td>
+    </tr>
+    <tr>
+      <td class="before-cell">Topbar: <code>RoleSwitcher</code> + <code>ScenarioSelector</code></td>
+      <td class="after-cell"><span class="added">+ <code>TenantSwitcher</code></span> di topbar, untuk role yang melihat &gt;1 client</td>
+    </tr>
+    <tr>
+      <td class="before-cell"><code>/dispatch</code> - antrian urut FIFO (created_at)</td>
+      <td class="after-cell"><span class="changed"><code>/dispatch</code> jadi SLA-aware sort</span> (breached &gt; at-risk &gt; on-track)</td>
+    </tr>
+    <tr>
+      <td class="before-cell"><code>/exec</code> - KPI 1 perusahaan, breakdown per DC</td>
+      <td class="after-cell"><span class="changed">+ breakdown KPI per client</span> (extend tabel breakdown DC yang sudah ada)</td>
+    </tr>
+    <tr>
+      <td class="before-cell"><code>/supervisor</code> - daftar exception cluster</td>
+      <td class="after-cell"><span class="added">+ panel "SLA at risk"</span></td>
+    </tr>
+    <tr>
+      <td class="before-cell"><code>/catalog</code>, <code>/stores</code>, <code>/in-transit</code>, <code>/reconciliation</code> - tabel data campuran</td>
+      <td class="after-cell"><span class="changed">+ <code>ClientBadge</code></span> di setiap baris untuk menandai kepemilikan</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>7.3 Komponen baru (semua dari shadcn primitives yang sudah ada)</h3>
+<div class="ba">
+  <div class="ba-col before">
+    <div class="ba-label">Sebelum</div>
+    <ul>
+      <li><code>RoleSwitcher</code>, <code>ScenarioSelector</code> (topbar)</li>
+      <li><code>src/components/dc/status-badge.tsx</code></li>
+      <li><code>src/components/exec/delta-badge.tsx</code>, <code>trend-row.tsx</code></li>
+      <li><code>src/components/sup/cluster-picker.tsx</code></li>
+      <li><code>computeSuggestedOrders</code> di <code>engine.ts</code></li>
+    </ul>
+  </div>
+  <div class="ba-col after">
+    <div class="ba-label">Sesudah (tambahan)</div>
+    <ul>
+      <li><code>src/components/shared/tenant-switcher.tsx</code> (pola dari <code>scenario-selector.tsx</code>)</li>
+      <li><code>src/components/shared/client-badge.tsx</code> (pakai <code>Badge</code>)</li>
+      <li><code>src/components/shared/sla-badge.tsx</code> (pakai <code>Badge</code> + CVA)</li>
+      <li><code>src/components/client/*</code> (dashboard persona baru, model dari <code>src/components/exec/*</code>)</li>
+      <li><code>src/lib/permissions.ts</code> (lapisan simulasi RBAC)</li>
+      <li><code>computeReplenishmentRequests</code> (reframe dari <code>computeSuggestedOrders</code>)</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ====================== TIDAK RELEVAN ====================== -->
+<h2 id="tidak-relevan"><span class="num">8.</span>Yang Tidak Relevan / Dihilangkan</h2>
+
+<ul>
+  <li><strong>Tidak ada entity yang dihapus total.</strong> Sebagian besar di-<em>reframe</em>: <code>Store</code> -> <strong>Outlet</strong> (milik klien), <code>DC</code> -> konsepnya jadi gudang bersama, <code>/suggested-orders</code> -> dipecah jadi <code>/allocation</code> (kapasitas) + replenishment per-outlet yang tetap di <code>/store/draft</code>.</li>
+  <li><strong>Asumsi "1 perusahaan implisit" pada fixtures hilang.</strong> 94 SKU di <code>src/mocks/fixtures/skus.ts</code> yang sekarang dianggap satu katalog akan dikelompokkan ulang jadi katalog milik beberapa <code>Client</code> berbeda - brand fiksi yang sudah ada (Renyahku, Garingo, Mantul, Snekita, Cilukbao, Mie Pak Eko, Sehatea, Segarmu, Kopiku, Susukita, Buahria, Berseh, Lembutku, Putihgigi, Rumahku, Halusin) justru pas dijadikan nama-nama client/tenant.</li>
+  <li><strong>Antrian FIFO murni di <code>/dispatch</code> tidak lagi relevan</strong> sebagai urutan default - digantikan urutan SLA-aware, meski data <code>created_at</code> tetap dipakai sebagai tie-breaker.</li>
+  <li><strong>Tidak ada perubahan pada batasan teknis proyek.</strong> Stack (TanStack Start, React 19, TypeScript, Tailwind 4, shadcn/ui), pendekatan mock-data-only, dan larangan komponen custom di luar shadcn semuanya tetap berlaku - "multi-tenant", "RBAC", dan "SLA engine" di sini adalah simulasi data + UI, bukan sistem baru.</li>
+</ul>
+
+<!-- ====================== PENUTUP ====================== -->
+<h2 id="penutup"><span class="num">9.</span>Penutup</h2>
+<p>
+  Dokumen ini adalah bahan diskusi untuk menyamakan pemahaman tentang cakupan challenge sebelum kode di-refactor. Belum ada urutan langkah implementasi (file mana diubah lebih dulu, dst) - itu akan dibahas terpisah setelah arah konsep di atas disetujui.
+</p>
+
+<hr />
+<p class="small" style="text-align:center; color: var(--subtle);">
+  Akhir dokumen. Analisis konsep refactor KDMP Marketplace (3PL multi-tenant), draft untuk review.
+</p>
+
+</div>
+</body>
+</html>

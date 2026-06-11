@@ -67,9 +67,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { useMockStore } from "@/mocks/state"
+import { selectPrimaryClientIdForOrder, useMockStore } from "@/mocks/state"
 import type { Order, OrderSource, SKU } from "@/mocks/types"
 
+import { ClientBadge } from "@/components/shared/client-badge"
 import { OrderStatusBadge } from "@/components/dc/status-badge"
 import {
   formatCompactIDR,
@@ -99,6 +100,7 @@ function SuggestedOrdersPage() {
   const inferredStock = useMockStore((s) => s.inferredStock)
   const confirmOrders = useMockStore((s) => s.confirmOrders)
   const flagOrderForReview = useMockStore((s) => s.flagOrderForReview)
+  const currentTenantScope = useMockStore((s) => s.currentTenantScope)
 
   const state = useMockStore.getState()
   const activeDcId = getActiveDcId(state)
@@ -163,6 +165,12 @@ function SuggestedOrdersPage() {
 
       if (sourceFilter !== "all" && o.source !== sourceFilter) return false
 
+      if (
+        currentTenantScope !== "all" &&
+        selectPrimaryClientIdForOrder(state, o.id) !== currentTenantScope
+      )
+        return false
+
       if (query) {
         const name = storeName(stores, o.store_id).toLowerCase()
         if (!name.includes(query) && !o.id.toLowerCase().includes(query))
@@ -200,6 +208,8 @@ function SuggestedOrdersPage() {
     sortDir,
     totalsByOrder,
     stores,
+    state,
+    currentTenantScope,
   ])
 
   // Keyboard shortcuts: j/k navigate, x toggle select, c confirm selected, / focus search.
@@ -425,6 +435,7 @@ function SuggestedOrdersPage() {
                   onClick={() => toggleSort("total")}
                   className="text-right"
                 />
+                <TableHead>Client</TableHead>
                 <TableHead>Source</TableHead>
                 <TableHead>Status</TableHead>
                 <SortableHead
@@ -487,6 +498,11 @@ function SuggestedOrdersPage() {
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatCompactIDR(totals.total)}
+                    </TableCell>
+                    <TableCell>
+                      <ClientBadge
+                        clientId={selectPrimaryClientIdForOrder(state, order.id)}
+                      />
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="font-normal capitalize">

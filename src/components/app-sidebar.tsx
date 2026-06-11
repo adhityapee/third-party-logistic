@@ -51,6 +51,7 @@ const GROUPS: Record<Role, NavGroup[]> = {
       items: [
         { label: "Today", to: "/", icon: Sun03Icon },
         { label: "Suggested orders", to: "/suggested-orders", icon: CheckListIcon },
+        { label: "Allocation", to: "/allocation", icon: AnalyticsUpIcon },
         { label: "Dispatch", to: "/dispatch", icon: PackageIcon },
         { label: "In transit", to: "/in-transit", icon: DeliveryTruck02Icon },
       ],
@@ -94,6 +95,16 @@ const GROUPS: Record<Role, NavGroup[]> = {
       items: [
         { label: "My route", to: "/driver", icon: RouteIcon },
         { label: "Sign in", to: "/driver/login", icon: MapPinpoint02Icon },
+      ],
+    },
+  ],
+  client: [
+    {
+      label: "Client",
+      items: [
+        { label: "Overview", to: "/client", icon: ChartIcon },
+        { label: "Inventory", to: "/client/inventory", icon: Tag01Icon },
+        { label: "Orders", to: "/client/orders", icon: InvoiceIcon },
       ],
     },
   ],

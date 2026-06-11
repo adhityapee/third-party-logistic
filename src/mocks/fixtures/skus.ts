@@ -1,4 +1,5 @@
 import type { SKU, SKUCategory } from '../types'
+import { CATEGORY_TO_CLIENT } from './clients'
 
 interface SkuSeed {
   brand: string
@@ -101,6 +102,7 @@ export const skus: SKU[] = seeds.map((s, i) => {
     code,
     name: `${s.brand} ${s.product} ${s.variant}`,
     category: s.category,
+    client_id: CATEGORY_TO_CLIENT[s.category],
     default_burn_per_day: s.burn,
     reorder_threshold_days: s.threshold,
     unit_price_idr: s.price,

@@ -45,6 +45,9 @@ import {
   selectInferredStockForStore,
   selectOrderById,
   selectOrderLines,
+  selectOrderSLA,
+  selectOrdersBySLAUrgency,
+  selectPrimaryClientIdForOrder,
   selectStoreById,
   selectStoresForCluster,
   useMockStore,
@@ -52,6 +55,8 @@ import {
 import type { ExceptionReason, Order, OrderLine, SKU, Store } from "@/mocks/types"
 import { ClusterPicker } from "@/components/sup/cluster-picker"
 import type { ClusterOption } from "@/components/sup/cluster-picker"
+import { ClientBadge } from "@/components/shared/client-badge"
+import { SLABadge } from "@/components/shared/sla-badge"
 import { useSimulatedError } from "@/components/route-error"
 
 export const Route = createFileRoute("/supervisor/")({
@@ -225,6 +230,18 @@ function SupervisorHome() {
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       )
   }, [state, effectiveClusters])
+
+  const slaAtRisk = React.useMemo(() => {
+    const storeIds = new Set(stores.map((s) => s.id))
+    const candidates = state.orders.filter(
+      (o) =>
+        storeIds.has(o.store_id) &&
+        (state.currentTenantScope === "all" ||
+          selectPrimaryClientIdForOrder(state, o.id) === state.currentTenantScope) &&
+        ["at_risk", "breached"].includes(selectOrderSLA(state, o.id).status),
+    )
+    return selectOrdersBySLAUrgency(state, candidates)
+  }, [state, stores])
 
   const [openOrderId, setOpenOrderId] = React.useState<string | null>(null)
   const openOrder = openOrderId ? selectOrderById(state, openOrderId) : undefined
@@ -455,6 +472,78 @@ function SupervisorHome() {
                   )
                 })}
               </ul>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      <Separator className="my-8" />
+
+      <section aria-label="SLA at risk" className="grid gap-4">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <h2 className="font-heading text-lg font-semibold">SLA at risk</h2>
+            <p className="text-sm text-muted-foreground">
+              Orders close to or past their client SLA window, most urgent
+              first.
+            </p>
+          </div>
+          <Badge variant="secondary" className="font-normal">
+            {slaAtRisk.length} orders
+          </Badge>
+        </div>
+        <Card>
+          <CardContent className="p-0">
+            {slaAtRisk.length === 0 ? (
+              <div className="px-6 py-10 text-center text-sm text-muted-foreground">
+                No orders at risk in the selected clusters.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Store</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>SLA</TableHead>
+                    <TableHead className="w-10" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {slaAtRisk.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium">
+                            {selectStoreById(state, order.store_id)?.name ??
+                              order.store_id}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {order.id.slice(0, 16)}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <ClientBadge
+                          clientId={selectPrimaryClientIdForOrder(state, order.id)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <SLABadge orderId={order.id} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setOpenOrderId(order.id)}
+                        >
+                          Open
+                          <HugeiconsIcon icon={ArrowRight02Icon} strokeWidth={2} />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>

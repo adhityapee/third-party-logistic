@@ -21,7 +21,12 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DeltaBadge } from "@/components/exec/delta-badge"
 import { TrendRow } from "@/components/exec/trend-row"
-import { selectKpiForPeriod, useMockStore } from "@/mocks/state"
+import {
+  selectKpiForPeriod,
+  selectOrderSLA,
+  selectOrdersForClient,
+  useMockStore,
+} from "@/mocks/state"
 import type { MockState } from "@/mocks/state"
 import type { ScenarioId } from "@/mocks/types"
 import { useSimulatedError } from "@/components/route-error"
@@ -97,6 +102,37 @@ function deriveDcKpis(state: MockState, dcId: string, period: Period) {
     onTimePct: Math.round((base.onTimePct + driftPct) * 10) / 10,
     acceptancePct: Math.round((base.acceptancePct - driftPct) * 10) / 10,
     avgCycleHours: Math.round((base.avgCycleHours + drift) * 10) / 10,
+  }
+}
+
+function deriveClientKpis(state: MockState, clientId: string, period: Period) {
+  // Per-client values are gently perturbed from network values using a stable hash,
+  // matching the approach used for per-DC breakdowns.
+  const base = tonedKpi(state, period)
+  const hash = Array.from(clientId).reduce(
+    (acc, ch) => (acc * 31 + ch.charCodeAt(0)) >>> 0,
+    7,
+  )
+  const drift = ((hash % 13) - 6) / 10 // -0.6 to +0.6
+  const driftPct = ((hash % 21) - 10) / 10 // -1.0 to +1.0
+
+  const orders = selectOrdersForClient(state, clientId)
+  const slaResults = orders.map((o) => selectOrderSLA(state, o.id))
+  const slaOnTimePct =
+    slaResults.length > 0
+      ? Math.round(
+          (slaResults.filter((s) => s.status === "on_track").length /
+            slaResults.length) *
+            1000,
+        ) / 10
+      : 100
+
+  return {
+    stockOutRatePct: Math.round((base.stockOutRatePct + drift) * 10) / 10,
+    onTimePct: Math.round((base.onTimePct + driftPct) * 10) / 10,
+    acceptancePct: Math.round((base.acceptancePct - driftPct) * 10) / 10,
+    avgCycleHours: Math.round((base.avgCycleHours + drift) * 10) / 10,
+    slaOnTimePct,
   }
 }
 
@@ -259,6 +295,70 @@ function ExecOverview() {
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {row.avgCycleHours}h
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </section>
+
+      <Separator className="my-8" />
+
+      <section aria-label="Per client breakdown" className="grid gap-3">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <h2 className="font-heading text-lg font-semibold">By client</h2>
+            <p className="text-sm text-muted-foreground">
+              Same metrics, broken out by 3PL client. {PERIOD_LABEL[period]}.
+            </p>
+          </div>
+          <Badge variant="secondary" className="font-normal">
+            {state.clients.length} clients
+          </Badge>
+        </div>
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Client</TableHead>
+                  <TableHead className="text-right">Stock out</TableHead>
+                  <TableHead className="text-right">On time</TableHead>
+                  <TableHead className="text-right">Acceptance</TableHead>
+                  <TableHead className="text-right">Avg cycle</TableHead>
+                  <TableHead className="text-right">SLA on time</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {state.clients.map((client) => {
+                  const row = deriveClientKpis(state, client.id, period)
+                  return (
+                    <TableRow key={client.id}>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{client.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {client.code}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-medium tabular-nums">
+                        {row.stockOutRatePct}%
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {row.onTimePct}%
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {row.acceptancePct}%
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {row.avgCycleHours}h
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {row.slaOnTimePct}%
                       </TableCell>
                     </TableRow>
                   )

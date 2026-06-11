@@ -1,6 +1,12 @@
-export type Role = 'ops-manager' | 'store' | 'driver' | 'supervisor' | 'exec'
+export type Role = 'ops-manager' | 'store' | 'driver' | 'supervisor' | 'exec' | 'client'
 
 export type ScenarioId = 'calm-tuesday' | 'exception-friday' | 'end-of-month-surge'
+
+export type TenantScope = 'all' | string
+
+export type SLATier = 'standard' | 'priority' | 'express'
+
+export type SLAStatus = 'on_track' | 'at_risk' | 'breached'
 
 export type OrderStatus =
   | 'draft'
@@ -47,9 +53,42 @@ export interface SKU {
   code: string
   name: string
   category: SKUCategory
+  client_id: string
   default_burn_per_day: number
   reorder_threshold_days: number
   unit_price_idr: number
+}
+
+export interface Client {
+  id: string
+  name: string
+  code: string
+  category: SKUCategory
+  contact_name: string
+  contact_email: string
+}
+
+export interface SLAContract {
+  id: string
+  client_id: string
+  tier: SLATier
+  promised_delivery_hours: number
+  target_on_time_pct: number
+}
+
+export interface WarehouseZone {
+  id: string
+  dc_id: string
+  client_id: string
+  name: string
+  code: string
+}
+
+export interface CapacityAllocation {
+  id: string
+  zone_id: string
+  allocated_units: number
+  used_units: number
 }
 
 export interface InferredStock {
@@ -107,6 +146,7 @@ export interface User {
   dc_id?: string
   store_id?: string
   cluster_id?: string
+  client_ids?: string[]
 }
 
 export interface Exception {

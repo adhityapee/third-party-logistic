@@ -1,4 +1,5 @@
 import type {
+  CapacityAllocation,
   Exception,
   ExceptionReason,
   InferredStock,
@@ -13,8 +14,16 @@ import type {
 import { skus } from '../fixtures/skus'
 import { stores } from '../fixtures/stores'
 import { users } from '../fixtures/users'
+import { capacityAllocations } from '../fixtures/capacity-allocations'
 import { computeSuggestedOrders } from '../engine'
 import { isoOffset } from '../clock'
+
+export function scaledCapacityAllocations(factor: number): CapacityAllocation[] {
+  return capacityAllocations.map((a) => ({
+    ...a,
+    used_units: Math.round(a.used_units * factor),
+  }))
+}
 
 // The store persona on /store reads the first user with role === 'store'.
 // We must guarantee that store has a draft order in every scenario so the

@@ -12,4 +12,5 @@ export const users: User[] = [
   { id: 'user-andi-jkt-01', role: 'driver', name: 'Andi Saputra', phone: '+62 814 3000 0001', dc_id: 'dc-jkt-01' },
   { id: 'user-andi-jkt-02', role: 'driver', name: 'Andi Firmansyah', phone: '+62 814 3000 0002', dc_id: 'dc-jkt-01' },
   { id: 'user-andi-bdg-01', role: 'driver', name: 'Andi Maulana', phone: '+62 814 3000 0003', dc_id: 'dc-bdg-01' },
+  { id: 'user-pak-yanto', role: 'client', name: 'Pak Yanto', phone: '+62 815 4000 0001', client_ids: ['client-renyah'] },
 ]

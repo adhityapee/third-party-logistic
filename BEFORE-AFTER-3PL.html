@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Before / After: Tampilan KDMP setelah Refactor 3PL Multi-Tenant</title>
+<style>
+  :root {
+    --fg: #0f172a;
+    --muted: #475569;
+    --subtle: #64748b;
+    --line: #e2e8f0;
+    --line-strong: #cbd5e1;
+    --bg: #ffffff;
+    --panel: #f8fafc;
+    --accent: #1d4ed8;
+    --accent-soft: #eff6ff;
+    --good: #047857;
+    --good-soft: #ecfdf5;
+    --warn: #b45309;
+    --warn-soft: #fffbeb;
+    --bad: #b91c1c;
+    --bad-soft: #fef2f2;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--fg);
+    background: var(--bg);
+    margin: 0;
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 64px 32px 96px; }
+  header.cover { border-bottom: 1px solid var(--line); padding-bottom: 28px; margin-bottom: 40px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.14em; font-size: 11px; color: var(--subtle); font-weight: 600; }
+  h1 { font-size: 34px; line-height: 1.18; margin: 8px 0 6px; letter-spacing: -0.02em; }
+  h2 { font-size: 22px; margin: 56px 0 14px; letter-spacing: -0.01em; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 16px; margin: 28px 0 8px; letter-spacing: -0.005em; }
+  h4 { font-size: 13px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  p { margin: 10px 0; max-width: 76ch; }
+  ul, ol { padding-left: 22px; margin: 8px 0; max-width: 76ch; }
+  li { margin: 4px 0; }
+  .lede { color: var(--muted); font-size: 17px; max-width: 70ch; }
+  .meta { display: grid; grid-template-columns: max-content 1fr; column-gap: 18px; row-gap: 6px; font-size: 13px; margin-top: 18px; color: var(--muted); }
+  .meta dt { color: var(--subtle); }
+  .meta dd { margin: 0; color: var(--fg); }
+  code, kbd, .mono { font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace; font-size: 13px; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--panel); font-size: 12px; color: var(--muted); margin-right: 6px; }
+  .pill.good { background: var(--good-soft); border-color: #a7f3d0; color: var(--good); }
+  .pill.accent { background: var(--accent-soft); border-color: #bfdbfe; color: var(--accent); }
+  .toc { columns: 2; column-gap: 32px; font-size: 14px; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .nav-li { break-inside: avoid; margin: 3px 0; }
+  .num { color: var(--subtle); margin-right: 6px; font-variant-numeric: tabular-nums; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 40px 0; }
+  .small { font-size: 13px; color: var(--muted); }
+  .banner { border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); border-radius: 8px; padding: 14px 18px; font-size: 14px; font-weight: 600; margin: 24px 0 32px; }
+  .banner span { font-weight: 500; color: #1e3a8a; }
+
+  /* before/after grid */
+  .ba { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0 22px; align-items: stretch; }
+  .ba-col { border-radius: 8px; border: 1px solid var(--line); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .ba-col.before { background: var(--panel); }
+  .ba-col.after { background: var(--good-soft); border-color: #a7f3d0; }
+  .ba-label { text-transform: uppercase; letter-spacing: 0.1em; font-size: 11px; font-weight: 700; }
+  .ba-col.before .ba-label { color: var(--subtle); }
+  .ba-col.after .ba-label { color: var(--good); }
+  .ba-col p, .ba-col ul { margin: 0; max-width: none; font-size: 13px; }
+  .ba-col ul { padding-left: 18px; }
+  .ba-col.new { background: var(--accent-soft); border-color: #bfdbfe; }
+  .ba-col.new .ba-label { color: var(--accent); }
+
+  /* mini app mockup */
+  .mock { border: 1px solid var(--line-strong); border-radius: 8px; background: #fff; overflow: hidden; font-size: 11px; box-shadow: 0 1px 2px rgba(15,23,42,0.04); }
+  .mock-bar { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--line); font-size: 10px; color: var(--muted); }
+  .mock-bar .dots { display: flex; gap: 3px; margin-right: 4px; }
+  .mock-bar .dots span { width: 6px; height: 6px; border-radius: 999px; background: var(--line-strong); display: inline-block; }
+  .mock-body { padding: 10px; }
+  .mock-h { font-weight: 600; font-size: 13px; margin: 0 0 6px; color: var(--fg); }
+  .mock-sub { color: var(--subtle); font-size: 10.5px; margin: 0 0 8px; }
+  table.mtable { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+  table.mtable th, table.mtable td { padding: 5px 7px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+  table.mtable th { background: var(--panel); font-weight: 600; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; }
+  table.mtable tr:last-child td { border-bottom: none; }
+  table.mtable td.num, table.mtable th.num { text-align: right; }
+  .col-new { background: rgba(167, 243, 208, 0.35); }
+
+  .chip { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 999px; font-size: 9.5px; font-weight: 600; border: 1px solid transparent; line-height: 1.6; white-space: nowrap; }
+  .chip.snack { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+  .chip.bev { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
+  .chip.toil { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+  .chip.ok { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+  .chip.risk { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+  .chip.breach { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+  .chip.muted { background: var(--panel); color: var(--muted); border-color: var(--line-strong); }
+  .chip.confirmed { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
+  .chip.transit { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+  .chip.delivered { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+  .chip.exception { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+
+  .mprogress { height: 7px; border-radius: 999px; background: var(--line); overflow: hidden; width: 100%; }
+  .mprogress > div { height: 100%; background: var(--accent); border-radius: 999px; }
+  .mprogress.over > div { background: var(--bad); }
+
+  .mselect { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 3px 8px; font-size: 10px; color: var(--fg); background: #fff; }
+  .mselect .arrow { color: var(--subtle); font-size: 8px; }
+  .mselect.dim { color: var(--line-strong); border-style: dashed; border-color: var(--line); }
+
+  .mcard { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: #fff; }
+  .mcard .ck { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--subtle); }
+  .mcard .cv { font-size: 16px; font-weight: 700; margin-top: 2px; }
+  .mgrid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .mgrid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--muted); margin: 4px 0 16px; flex-wrap: wrap; }
+  .legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 999px; margin-right: 6px; vertical-align: middle; }
+  .dot.add { background: var(--good); }
+  .dot.change { background: var(--warn); }
+
+  table.diff th { font-size: 12px; }
+  table.diff { width: 100%; border-collapse: collapse; margin: 14px 0 8px; font-size: 14px; }
+  table.diff th, table.diff td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.diff th { background: var(--panel); font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+  table.diff tr:last-child td { border-bottom: none; }
+  table.diff td.before-cell { color: var(--muted); }
+  table.diff td.after-cell { color: var(--fg); }
+  table.diff .added { color: var(--good); font-weight: 600; }
+  table.diff .changed { color: var(--warn); font-weight: 600; }
+
+  @media print {
+    .wrap { padding: 24px; max-width: none; }
+    table, .mock { page-break-inside: avoid; }
+  }
+  @media (max-width: 760px) {
+    .wrap { padding: 32px 18px; }
+    .ba { grid-template-columns: 1fr; }
+    .toc { columns: 1; }
+    h1 { font-size: 26px; }
+    .mgrid3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="cover">
+  <div class="eyebrow">Ringkasan Visual, Pasca Implementasi</div>
+  <h1>Before / After: Tampilan yang Berubah Setelah Refactor 3PL Multi-Tenant</h1>
+  <p class="lede">
+    Refactor dari mockup KDMP "1 perusahaan FMCG" menjadi platform 3PL multi-tenant (lihat <code>PRD-3PL-REFACTOR.html</code>) sudah selesai diimplementasikan. Dokumen ini merangkum, per surface/halaman, apa yang sebelumnya tampil dan apa yang sekarang tampil setelah perubahan. Mockup di bawah adalah ilustrasi tata letak (warna dan badge mengikuti tema aplikasi), bukan tangkapan layar literal.
+  </p>
+  <dl class="meta">
+    <dt>Status</dt><dd><span class="pill good">Selesai diimplementasikan</span> typecheck dan lint bersih</dd>
+    <dt>Cakupan</dt><dd>Topbar/navigasi, 4 halaman yang diperluas, 4 halaman baru (1 route group)</dd>
+    <dt>Batasan proyek</dt><dd>Tetap frontend-only, mock data only, shadcn/ui only (lihat <code>CLAUDE.md</code>)</dd>
+  </dl>
+</header>
+
+<div class="banner">
+  Cara membaca dokumen ini<br />
+  <span>Tiap bagian punya kotak <strong>Sebelum</strong> (abu-abu) dan <strong>Sesudah</strong> (hijau), atau <strong>Baru</strong> (biru) untuk halaman yang sama sekali belum ada sebelumnya. Kolom/section yang berubah ditandai sorot hijau muda di mockup tabel.</span>
+</div>
+
+<nav>
+  <h4 style="margin-top:0">Daftar Isi</h4>
+  <ol class="toc">
+    <li class="nav-li"><a href="#topbar">1. Topbar: Tenant Switcher dan Persona Baru</a></li>
+    <li class="nav-li"><a href="#suggested">2. Suggested Orders: Kolom Client</a></li>
+    <li class="nav-li"><a href="#dispatch">3. Dispatch: Kolom dan Urutan SLA</a></li>
+    <li class="nav-li"><a href="#exec">4. Exec Overview: Breakdown per Client</a></li>
+    <li class="nav-li"><a href="#supervisor">5. Supervisor: Panel SLA at Risk</a></li>
+    <li class="nav-li"><a href="#allocation">6. Allocation: Halaman Baru</a></li>
+    <li class="nav-li"><a href="#client">7. Client Portal: Halaman Baru (Persona Pak Yanto)</a></li>
+    <li class="nav-li"><a href="#ringkasan">8. Ringkasan Semua Perubahan</a></li>
+  </ol>
+</nav>
+
+<!-- ================= 1. TOPBAR ================= -->
+<h2 id="topbar"><span class="num">1.</span>Topbar: Tenant Switcher dan Persona Baru</h2>
+<p>
+  Topbar (<code>src/routes/__root.tsx</code>) sebelumnya hanya berisi <code>RoleSwitcher</code> dan <code>ScenarioSelector</code>. Sekarang ditambah <code>TenantSwitcher</code> (<code>src/components/shared/tenant-switcher.tsx</code>) di antara keduanya, dan <code>RoleSwitcher</code> punya satu opsi persona baru.
+</p>
+<div class="ba">
+  <div class="ba-col before">
+    <div class="ba-label">Sebelum</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>app.kdmp / topbar</div>
+      <div class="mock-body" style="display:flex; gap:8px; justify-content:flex-end;">
+        <span class="mselect">Calm Tuesday <span class="arrow">v</span></span>
+        <span class="mselect">Rina, DC Ops Manager <span class="arrow">v</span></span>
+      </div>
+    </div>
+    <ul>
+      <li><code>ScenarioSelector</code>: calm-tuesday / exception-friday / end-of-month-surge</li>
+      <li><code>RoleSwitcher</code>: 5 persona (Rina, Sari, Pak Hadi, Budi, Andi)</li>
+    </ul>
+  </div>
+  <div class="ba-col after">
+    <div class="ba-label">Sesudah</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>app.kdmp / topbar</div>
+      <div class="mock-body" style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+        <span class="mselect">Calm Tuesday <span class="arrow">v</span></span>
+        <span class="mselect" style="border-color:#a7f3d0; background:#ecfdf5;">All clients <span class="arrow">v</span></span>
+        <span class="mselect">Rina, DC Ops Manager <span class="arrow">v</span></span>
+      </div>
+    </div>
+    <ul>
+      <li><span class="pill good">Baru</span> <code>TenantSwitcher</code>: "All clients" atau salah satu dari 3 client (Renyah Group, Segar Beverages, Bersih Personal Care)</li>
+      <li>Hanya tampil untuk role <code>ops-manager</code>, <code>supervisor</code>, <code>exec</code>; disembunyikan untuk <code>store</code>, <code>driver</code>, <code>client</code></li>
+      <li><code>RoleSwitcher</code>: <span class="pill good">+1 persona</span> "Pak Yanto, Client Ops Lead, Renyah Group" (role <code>client</code>), home <code>/client</code></li>
+      <li>Memilih persona "Pak Yanto" otomatis mengunci <code>currentTenantScope</code> ke Renyah Group dan menyembunyikan <code>TenantSwitcher</code></li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================= 2. SUGGESTED ORDERS ================= -->
+<h2 id="suggested"><span class="num">2.</span>Suggested Orders: Kolom Client</h2>
+<p>
+  <code>/suggested-orders</code> tetap halaman utama untuk Rina meninjau dan mengonfirmasi rekomendasi replenishment. Yang berubah: tabel sekarang menunjukkan barang itu milik client mana, dan baris bisa difilter sesuai <code>TenantSwitcher</code>.
+</p>
+<div class="ba">
+  <div class="ba-col before">
+    <div class="ba-label">Sebelum</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/suggested-orders</div>
+      <div class="mock-body">
+        <p class="mock-h">Suggested orders</p>
+        <p class="mock-sub">26 draft suggestions across 20 stores</p>
+        <table class="mtable">
+          <thead><tr><th>Store</th><th>SKU</th><th class="num">Qty</th><th class="num">Total</th><th>Source</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Toko Renyah Jaya</td><td>Renyahku Original 50g</td><td class="num">24</td><td class="num">Rp 96.000</td><td><span class="chip muted">Auto</span></td><td><span class="chip muted">Confirm</span></td></tr>
+            <tr><td>Warung Segar Abadi</td><td>Sehatea Melati 350ml</td><td class="num">12</td><td class="num">Rp 60.000</td><td><span class="chip muted">Manual</span></td><td><span class="chip muted">Confirm</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="ba-col after">
+    <div class="ba-label">Sesudah</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/suggested-orders</div>
+      <div class="mock-body">
+        <p class="mock-h">Suggested orders</p>
+        <p class="mock-sub">Filtered to: All clients (or locked to TenantSwitcher selection)</p>
+        <table class="mtable">
+          <thead><tr><th>Store</th><th>SKU</th><th class="num">Qty</th><th class="num">Total</th><th class="col-new">Client</th><th>Source</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Toko Renyah Jaya</td><td>Renyahku Original 50g</td><td class="num">24</td><td class="num">Rp 96.000</td><td class="col-new"><span class="chip snack">Renyah</span></td><td><span class="chip muted">Auto</span></td><td><span class="chip muted">Confirm</span></td></tr>
+            <tr><td>Warung Segar Abadi</td><td>Sehatea Melati 350ml</td><td class="num">12</td><td class="num">Rp 60.000</td><td class="col-new"><span class="chip bev">Segar</span></td><td><span class="chip muted">Manual</span></td><td><span class="chip muted">Confirm</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ul>
+      <li><span class="pill good">Baru</span> kolom <strong>Client</strong> antara Total dan Source, isi <code>ClientBadge</code> (warna per kategori: snacks/amber, beverages/sky, toiletries/emerald)</li>
+      <li>Jika <code>currentTenantScope</code> bukan "all", baris yang bukan milik client tersebut disembunyikan</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================= 3. DISPATCH ================= -->
+<h2 id="dispatch"><span class="num">3.</span>Dispatch: Kolom dan Urutan SLA</h2>
+<p>
+  <code>/dispatch</code> sebelumnya menampilkan order terkonfirmasi yang menunggu masuk wave, diurutkan FIFO berdasarkan <code>created_at</code>. Sekarang daftar diurutkan berdasarkan urgensi SLA, dan tiap baris menunjukkan status SLA-nya.
+</p>
+<div class="ba">
+  <div class="ba-col before">
+    <div class="ba-label">Sebelum</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/dispatch</div>
+      <div class="mock-body">
+        <p class="mock-h">Confirmed orders</p>
+        <p class="mock-sub">Sorted by created_at (FIFO)</p>
+        <table class="mtable">
+          <thead><tr><th>Store</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Toko Renyah Jaya, ORD-1042</td><td><span class="chip muted">Add to wave</span></td></tr>
+            <tr><td>Warung Bersih Sentosa, ORD-1043</td><td><span class="chip muted">Add to wave</span></td></tr>
+            <tr><td>Toko Segar Mandiri, ORD-1044</td><td><span class="chip muted">Add to wave</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="ba-col after">
+    <div class="ba-label">Sesudah</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/dispatch</div>
+      <div class="mock-body">
+        <p class="mock-h">Confirmed orders</p>
+        <p class="mock-sub">Sorted by SLA urgency: breached &gt; at risk &gt; on track</p>
+        <table class="mtable">
+          <thead><tr><th>Store</th><th class="col-new">SLA</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Warung Bersih Sentosa, ORD-1043</td><td class="col-new"><span class="chip breach">Breached 2h ago</span></td><td><span class="chip muted">Add to wave</span></td></tr>
+            <tr><td>Toko Segar Mandiri, ORD-1044</td><td class="col-new"><span class="chip risk">Due in 1h</span></td><td><span class="chip muted">Add to wave</span></td></tr>
+            <tr><td>Toko Renyah Jaya, ORD-1042</td><td class="col-new"><span class="chip ok">Due in 9h</span></td><td><span class="chip muted">Add to wave</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ul>
+      <li><span class="pill good">Baru</span> kolom <strong>SLA</strong> setelah Store, isi <code>SLABadge</code> (on track / at risk / breached, plus waktu relatif jatuh tempo)</li>
+      <li>Daftar diurutkan via <code>selectOrdersBySLAUrgency</code>: order breached muncul paling atas</li>
+      <li>Daftar juga difilter oleh <code>currentTenantScope</code> jika bukan "all"</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================= 4. EXEC ================= -->
+<h2 id="exec"><span class="num">4.</span>Exec Overview: Breakdown per Client</h2>
+<p>
+  <code>/exec</code> (Pak Hadi) sebelumnya punya satu tabel breakdown, per distribution center. Sekarang ada tabel kedua dengan pola identik, per client, plus satu kolom tambahan khusus SLA.
+</p>
+<div class="ba">
+  <div class="ba-col before">
+    <div class="ba-label">Sebelum</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/exec</div>
+      <div class="mock-body">
+        <p class="mock-h">By distribution center</p>
+        <table class="mtable">
+          <thead><tr><th>DC</th><th class="num">Stock out</th><th class="num">On time</th><th class="num">Acceptance</th><th class="num">Avg cycle</th></tr></thead>
+          <tbody>
+            <tr><td>DC Jakarta</td><td class="num">3.2%</td><td class="num">94.1%</td><td class="num">88.0%</td><td class="num">5.4h</td></tr>
+            <tr><td>DC Bandung</td><td class="num">2.8%</td><td class="num">95.0%</td><td class="num">90.2%</td><td class="num">4.9h</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p class="small">Tidak ada breakdown per client; hanya per DC.</p>
+  </div>
+  <div class="ba-col after">
+    <div class="ba-label">Sesudah</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/exec</div>
+      <div class="mock-body">
+        <p class="mock-h">By distribution center</p>
+        <table class="mtable">
+          <thead><tr><th>DC</th><th class="num">Stock out</th><th class="num">On time</th><th class="num">Acceptance</th><th class="num">Avg cycle</th></tr></thead>
+          <tbody>
+            <tr><td>DC Jakarta</td><td class="num">3.2%</td><td class="num">94.1%</td><td class="num">88.0%</td><td class="num">5.4h</td></tr>
+            <tr><td>DC Bandung</td><td class="num">2.8%</td><td class="num">95.0%</td><td class="num">90.2%</td><td class="num">4.9h</td></tr>
+          </tbody>
+        </table>
+        <p class="mock-h" style="margin-top:10px;">By client</p>
+        <table class="mtable">
+          <thead><tr><th>Client</th><th class="num">Stock out</th><th class="num">On time</th><th class="num">Acceptance</th><th class="num">Avg cycle</th><th class="num col-new">SLA on time</th></tr></thead>
+          <tbody>
+            <tr><td><span class="chip snack">Renyah Group</span></td><td class="num">3.0%</td><td class="num">94.5%</td><td class="num">87.6%</td><td class="num">5.2h</td><td class="num col-new">96.7%</td></tr>
+            <tr><td><span class="chip bev">Segar Beverages</span></td><td class="num">2.6%</td><td class="num">95.4%</td><td class="num">90.9%</td><td class="num">4.6h</td><td class="num col-new">88.2%</td></tr>
+            <tr><td><span class="chip toil">Bersih Personal Care</span></td><td class="num">3.5%</td><td class="num">93.1%</td><td class="num">86.4%</td><td class="num">5.8h</td><td class="num col-new">100.0%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ul>
+      <li><span class="pill good">Baru</span> section "By client": tabel dengan pola sama seperti "By distribution center" (Stock out, On time, Acceptance, Avg cycle)</li>
+      <li><span class="pill good">Baru</span> kolom tambahan <strong>SLA on time</strong>, dihitung dari proporsi order client yang berstatus "on track" via <code>selectOrderSLA</code></li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================= 5. SUPERVISOR ================= -->
+<h2 id="supervisor"><span class="num">5.</span>Supervisor: Panel SLA at Risk</h2>
+<p>
+  <code>/supervisor</code> (Sari) sebelumnya fokus pada exception per cluster toko. Sekarang ditambah satu section baru di bawahnya, lintas cluster, yang menyoroti order dengan SLA berisiko atau sudah terlambat.
+</p>
+<div class="ba">
+  <div class="ba-col before">
+    <div class="ba-label">Sebelum</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/supervisor</div>
+      <div class="mock-body">
+        <p class="mock-h">Cluster: Jakarta Selatan</p>
+        <table class="mtable">
+          <thead><tr><th>Store</th><th>Exception</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Toko Renyah Jaya</td><td><span class="chip exception">Damaged goods</span></td><td><span class="chip muted">Open</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="ba-col after">
+    <div class="ba-label">Sesudah</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/supervisor</div>
+      <div class="mock-body">
+        <p class="mock-h">Cluster: Jakarta Selatan</p>
+        <table class="mtable">
+          <thead><tr><th>Store</th><th>Exception</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Toko Renyah Jaya</td><td><span class="chip exception">Damaged goods</span></td><td><span class="chip muted">Open</span></td></tr>
+          </tbody>
+        </table>
+        <p class="mock-h" style="margin-top:10px;">SLA at risk</p>
+        <table class="mtable">
+          <thead><tr><th>Store</th><th class="col-new">Client</th><th class="col-new">SLA</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Warung Bersih Sentosa, ORD-1043</td><td class="col-new"><span class="chip toil">Bersih</span></td><td class="col-new"><span class="chip breach">Breached 2h ago</span></td><td><span class="chip muted">Open</span></td></tr>
+            <tr><td>Toko Segar Mandiri, ORD-1044</td><td class="col-new"><span class="chip bev">Segar</span></td><td class="col-new"><span class="chip risk">Due in 1h</span></td><td><span class="chip muted">Open</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ul>
+      <li><span class="pill good">Baru</span> section "SLA at risk": daftar order berstatus <code>at_risk</code> atau <code>breached</code>, lintas semua cluster yang dilihat Sari, diurutkan via <code>selectOrdersBySLAUrgency</code></li>
+      <li>Tiap baris: nama toko, <code>ClientBadge</code>, <code>SLABadge</code>, dan tombol "Open" yang membuka sheet detail order yang sama seperti panel exception</li>
+      <li>Difilter oleh <code>currentTenantScope</code> jika bukan "all"</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================= 6. ALLOCATION ================= -->
+<h2 id="allocation"><span class="num">6.</span>Allocation: Halaman Baru</h2>
+<p>
+  Halaman baru <code>/allocation</code>, ditambahkan ke grup navigasi "DC Operations" di sidebar ops-manager. Menunjukkan bagaimana kapasitas gudang aktif (per zona) dialokasikan dan dipakai oleh tiap client.
+</p>
+<div class="ba">
+  <div class="ba-col before">
+    <div class="ba-label">Sebelum</div>
+    <p>Halaman ini belum ada. Sidebar "DC Operations" hanya berisi: Dashboard, Dispatch, In transit, Catalog, Stores, Suggested orders, Reconciliation.</p>
+  </div>
+  <div class="ba-col new">
+    <div class="ba-label">Baru</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/allocation</div>
+      <div class="mock-body">
+        <p class="mock-h">Warehouse capacity</p>
+        <p class="mock-sub" style="color:#b45309;">2 zones at or above 90% utilization</p>
+        <div class="mgrid3">
+          <div class="mcard">
+            <div class="ck">Zone A1 &middot; <span class="chip snack">Renyah</span></div>
+            <div class="cv">2,180 / 2,400 <span style="font-size:9px; font-weight:500; color:var(--subtle);">units</span></div>
+            <div class="mprogress" style="margin-top:6px;"><div style="width:91%;"></div></div>
+            <div class="ck" style="margin-top:4px;">91%</div>
+          </div>
+          <div class="mcard">
+            <div class="ck">Zone A2 &middot; <span class="chip bev">Segar</span></div>
+            <div class="cv">1,540 / 2,000</div>
+            <div class="mprogress" style="margin-top:6px;"><div style="width:77%;"></div></div>
+            <div class="ck" style="margin-top:4px;">77%</div>
+          </div>
+          <div class="mcard">
+            <div class="ck">Zone A3 &middot; <span class="chip toil">Bersih</span></div>
+            <div class="cv">1,920 / 1,800</div>
+            <div class="mprogress over" style="margin-top:6px;"><div style="width:100%;"></div></div>
+            <div class="ck" style="margin-top:4px;">107% &middot; <span class="chip breach">Over capacity</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ul>
+      <li>Section atas: ringkasan alert untuk zona dengan utilisasi &ge; 90% (<code>selectCapacityAlerts</code>)</li>
+      <li>Grid kartu per zona di DC aktif (<code>selectCapacityAllocationsForDC</code>): <code>ClientBadge</code>, jumlah unit terpakai vs. dialokasikan, <code>Progress</code> bar shadcn, persentase, dan badge "Over capacity" jika &gt; 100%</li>
+      <li>Mengikuti scenario aktif: <code>end-of-month-surge</code> menaikkan <code>used_units</code> sehingga lebih banyak zona terlihat penuh</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================= 7. CLIENT PORTAL ================= -->
+<h2 id="client"><span class="num">7.</span>Client Portal: Halaman Baru (Persona Pak Yanto)</h2>
+<p>
+  Persona ke-6, "Pak Yanto, Client Ops Lead, Renyah Group" (role <code>client</code>), dengan route group <code>/client/*</code> yang scope-nya selalu terkunci ke client miliknya sendiri (<code>TenantSwitcher</code> tidak tampil).
+</p>
+
+<h3>7.1 <code>/client</code>, ringkasan KPI</h3>
+<div class="ba">
+  <div class="ba-col before">
+    <div class="ba-label">Sebelum</div>
+    <p>Tidak ada. Persona "client" belum ada; tidak ada route, tidak ada menu sidebar untuknya.</p>
+  </div>
+  <div class="ba-col new">
+    <div class="ba-label">Baru</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/client</div>
+      <div class="mock-body">
+        <p class="mock-h">Renyah Group</p>
+        <div class="mcard" style="margin-bottom:8px;">
+          <div class="ck">Service contract</div>
+          <div style="display:flex; gap:14px; margin-top:4px; flex-wrap:wrap;">
+            <span><span class="chip ok">Priority</span></span>
+            <span class="ck">Promised delivery: <strong style="color:var(--fg)">12h</strong></span>
+            <span class="ck">On-time target: <strong style="color:var(--fg)">95%</strong></span>
+          </div>
+        </div>
+        <div class="mgrid3">
+          <div class="mcard"><div class="ck">On-time delivery</div><div class="cv">96.7%</div></div>
+          <div class="mcard"><div class="ck">SLA at risk / breached</div><div class="cv">2</div></div>
+          <div class="mcard"><div class="ck">SKUs below cover</div><div class="cv">5</div></div>
+        </div>
+        <p class="mock-h" style="margin-top:10px;">Orders</p>
+        <div class="mgrid3">
+          <div class="mcard"><div class="ck">Confirmed</div><div class="cv">8</div></div>
+          <div class="mcard"><div class="ck">In transit</div><div class="cv">3</div></div>
+          <div class="mcard"><div class="ck">Delivered</div><div class="cv">21</div></div>
+        </div>
+      </div>
+    </div>
+    <ul>
+      <li>Header dengan nama client dan kartu kontrak SLA (tier, jam pengiriman dijanjikan, target on-time, kontak)</li>
+      <li>3 kartu KPI kecil: on-time delivery, jumlah order SLA at-risk/breached, jumlah SKU di bawah ambang stok</li>
+      <li>Section "Orders": jumlah order per status (Confirmed, In transit, Delivered, Exceptions)</li>
+    </ul>
+  </div>
+</div>
+
+<h3>7.2 <code>/client/inventory</code></h3>
+<div class="ba">
+  <div class="ba-col before">
+    <div class="ba-label">Sebelum</div>
+    <p>Tidak ada. (Bandingkan dengan <code>/catalog</code> yang dipakai Rina untuk semua client.)</p>
+  </div>
+  <div class="ba-col new">
+    <div class="ba-label">Baru</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/client/inventory</div>
+      <div class="mock-body">
+        <p class="mock-h">Inventory</p>
+        <table class="mtable">
+          <thead><tr><th>Store</th><th>SKU</th><th class="num">On hand</th><th class="num">Days of cover</th></tr></thead>
+          <tbody>
+            <tr><td>Toko Renyah Jaya</td><td>Renyahku Original 50g</td><td class="num">18</td><td class="num"><span class="chip breach">2.1d</span></td></tr>
+            <tr><td>Warung Garingo Sejati</td><td>Garingo Pedas 80g</td><td class="num">42</td><td class="num"><span class="chip risk">5.4d</span></td></tr>
+            <tr><td>Toko Mantul Makmur</td><td>Mantul Cokelat 100g</td><td class="num">120</td><td class="num"><span class="chip ok">11.2d</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ul>
+      <li>Tabel <code>selectInferredStockForClient</code>, hanya SKU milik Renyah Group, di seluruh toko</li>
+      <li>Kolom "Days of cover" pakai badge tone yang sama seperti <code>/stores</code>: critical (&lt;3 hari), low (&lt;7 hari), healthy</li>
+    </ul>
+  </div>
+</div>
+
+<h3>7.3 <code>/client/orders</code></h3>
+<div class="ba">
+  <div class="ba-col before">
+    <div class="ba-label">Sebelum</div>
+    <p>Tidak ada. (Bandingkan dengan <code>/reconciliation</code> yang dipakai Rina untuk semua client.)</p>
+  </div>
+  <div class="ba-col new">
+    <div class="ba-label">Baru</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/client/orders</div>
+      <div class="mock-body">
+        <p class="mock-h">Orders</p>
+        <table class="mtable">
+          <thead><tr><th>Store</th><th>Status</th><th>SLA</th><th>Delivered at</th></tr></thead>
+          <tbody>
+            <tr><td>Toko Renyah Jaya</td><td><span class="chip transit">In transit</span></td><td><span class="chip ok">Due in 9h</span></td><td>-</td></tr>
+            <tr><td>Warung Garingo Sejati</td><td><span class="chip delivered">Delivered</span></td><td><span class="chip ok">On time</span></td><td>08:42</td></tr>
+            <tr><td>Toko Mantul Makmur</td><td><span class="chip confirmed">Confirmed</span></td><td><span class="chip risk">Due in 1h</span></td><td>-</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ul>
+      <li>Tabel read-only <code>selectOrdersForClient</code>, terurut dari yang terbaru</li>
+      <li>Kolom: Store, Status (<code>OrderStatusBadge</code>), SLA (<code>SLABadge</code>), Delivered at</li>
+      <li>Tidak ada tombol aksi, sesuai sifat persona client (visibility only)</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================= 8. RINGKASAN ================= -->
+<h2 id="ringkasan"><span class="num">8.</span>Ringkasan Semua Perubahan</h2>
+<p class="legend">
+  <span><span class="dot add"></span>Halaman atau elemen baru</span>
+  <span><span class="dot change"></span>Halaman lama, dapat tambahan elemen</span>
+</p>
+<table class="diff">
+  <thead><tr><th style="width:22%">Surface</th><th style="width:46%">Sebelum</th><th>Sesudah</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>__root.tsx</code> (topbar)</td>
+      <td class="before-cell"><code>ScenarioSelector</code> + <code>RoleSwitcher</code> (5 persona)</td>
+      <td class="after-cell"><span class="changed">+</span> <code>TenantSwitcher</code>, <span class="changed">+</span> persona "Pak Yanto" (role <code>client</code>) di <code>RoleSwitcher</code></td>
+    </tr>
+    <tr>
+      <td><code>/suggested-orders</code></td>
+      <td class="before-cell">Tabel: Store, SKU, Qty, Total, Source, Action</td>
+      <td class="after-cell"><span class="changed">+</span> kolom Client (<code>ClientBadge</code>), filter by tenant scope</td>
+    </tr>
+    <tr>
+      <td><code>/dispatch</code></td>
+      <td class="before-cell">Confirmed orders, urut FIFO (<code>created_at</code>)</td>
+      <td class="after-cell"><span class="changed">+</span> kolom SLA (<code>SLABadge</code>), urut by SLA urgency, filter by tenant scope</td>
+    </tr>
+    <tr>
+      <td><code>/exec</code></td>
+      <td class="before-cell">Section "By distribution center" saja</td>
+      <td class="after-cell"><span class="changed">+</span> section baru "By client" (Stock out, On time, Acceptance, Avg cycle, <span class="added">SLA on time</span>)</td>
+    </tr>
+    <tr>
+      <td><code>/supervisor</code></td>
+      <td class="before-cell">Daftar exception per cluster</td>
+      <td class="after-cell"><span class="changed">+</span> section baru "SLA at risk" (lintas cluster, <code>ClientBadge</code> + <code>SLABadge</code>)</td>
+    </tr>
+    <tr>
+      <td><code>/allocation</code></td>
+      <td class="before-cell"><span style="color:var(--subtle)">- (belum ada)</span></td>
+      <td class="after-cell"><span class="added">Halaman baru:</span> alert kapasitas &ge; 90%, kartu progress per zona/client</td>
+    </tr>
+    <tr>
+      <td><code>/client</code></td>
+      <td class="before-cell"><span style="color:var(--subtle)">- (belum ada)</span></td>
+      <td class="after-cell"><span class="added">Halaman baru:</span> kontrak SLA, KPI on-time/SLA/stok, ringkasan status order, scope terkunci ke Renyah Group</td>
+    </tr>
+    <tr>
+      <td><code>/client/inventory</code></td>
+      <td class="before-cell"><span style="color:var(--subtle)">- (belum ada)</span></td>
+      <td class="after-cell"><span class="added">Halaman baru:</span> tabel stok per toko untuk SKU milik client</td>
+    </tr>
+    <tr>
+      <td><code>/client/orders</code></td>
+      <td class="before-cell"><span style="color:var(--subtle)">- (belum ada)</span></td>
+      <td class="after-cell"><span class="added">Halaman baru:</span> tabel order read-only, status + SLA</td>
+    </tr>
+    <tr>
+      <td>Sidebar</td>
+      <td class="before-cell">Grup "DC Operations" (7 item), 5 grup persona</td>
+      <td class="after-cell"><span class="changed">+</span> "Allocation" di grup "DC Operations", <span class="added">+</span> grup baru "Client" (Overview, Inventory, Orders) untuk persona Pak Yanto</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+<p class="small" style="text-align:center; color: var(--subtle);">
+  Akhir dokumen. Ringkasan before/after tampilan, hasil implementasi refactor 3PL multi-tenant (lihat <code>PRD-3PL-REFACTOR.html</code> untuk rencana awal).
+</p>
+
+</div>
+</body>
+</html>

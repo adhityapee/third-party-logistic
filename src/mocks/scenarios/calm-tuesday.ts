@@ -4,7 +4,10 @@ import { stores } from '../fixtures/stores'
 import { skus } from '../fixtures/skus'
 import { trucks } from '../fixtures/trucks'
 import { users } from '../fixtures/users'
-import { buildScenario } from './_helpers'
+import { clients } from '../fixtures/clients'
+import { slaContracts } from '../fixtures/sla-contracts'
+import { warehouseZones } from '../fixtures/warehouse-zones'
+import { buildScenario, scaledCapacityAllocations } from './_helpers'
 
 const built = buildScenario({
   draftStoreCount: 12,
@@ -26,6 +29,10 @@ const scenario: MockDataSlice = {
   waves: built.waves,
   exceptions: built.exceptions,
   pods: built.pods,
+  clients,
+  slaContracts,
+  warehouseZones,
+  capacityAllocations: scaledCapacityAllocations(1),
 }
 
 export default scenario
