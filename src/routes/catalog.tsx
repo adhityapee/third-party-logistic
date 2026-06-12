@@ -22,11 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Dialog,
   DialogClose,
@@ -58,6 +54,8 @@ import type { SKU, SKUCategory } from "@/mocks/types"
 
 import { formatIDR } from "@/components/dc/format"
 import { EmptyState } from "@/components/dc/empty-state"
+import { ClientBadge } from "@/components/shared/client-badge"
+import { canEditCatalog } from "@/lib/permissions"
 
 export const Route = createFileRoute("/catalog")({ component: CatalogPage })
 
@@ -77,6 +75,8 @@ function CatalogPage() {
   const skus = useMockStore((s) => s.skus)
   const upsertSku = useMockStore((s) => s.upsertSku)
   const deleteSku = useMockStore((s) => s.deleteSku)
+  const currentRole = useMockStore((s) => s.currentRole)
+  const canEdit = canEditCatalog(currentRole)
 
   const [category, setCategory] = React.useState<SKUCategory | "all">("all")
   const [search, setSearch] = React.useState("")
@@ -88,7 +88,11 @@ function CatalogPage() {
     const q = search.trim().toLowerCase()
     return skus.filter((s) => {
       if (category !== "all" && s.category !== category) return false
-      if (q && !s.name.toLowerCase().includes(q) && !s.code.toLowerCase().includes(q))
+      if (
+        q &&
+        !s.name.toLowerCase().includes(q) &&
+        !s.code.toLowerCase().includes(q)
+      )
         return false
       return true
     })
@@ -102,14 +106,16 @@ function CatalogPage() {
             Catalog
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            The SKU master used by the engine to suggest orders. Adjust burn rate
-            and thresholds to tune the recommendations.
+            The SKU master used by the engine to suggest orders. Adjust burn
+            rate and thresholds to tune the recommendations.
           </p>
         </div>
-        <Button onClick={() => setCreating(true)}>
-          <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-          Add SKU
-        </Button>
+        {canEdit ? (
+          <Button onClick={() => setCreating(true)}>
+            <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+            Add SKU
+          </Button>
+        ) : null}
       </header>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -153,6 +159,7 @@ function CatalogPage() {
               <TableRow>
                 <TableHead>SKU</TableHead>
                 <TableHead>Category</TableHead>
+                <TableHead>Client</TableHead>
                 <TableHead className="text-right">Burn / day</TableHead>
                 <TableHead className="text-right">Reorder at</TableHead>
                 <TableHead className="text-right">Unit price</TableHead>
@@ -164,15 +171,17 @@ function CatalogPage() {
                 <TableRow key={s.id}>
                   <TableCell>
                     <div className="font-medium">{s.name}</div>
-                    <div className="text-xs text-muted-foreground">{s.code}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {s.code}
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant="ghost"
-                      className={categoryTone[s.category]}
-                    >
+                    <Badge variant="ghost" className={categoryTone[s.category]}>
                       {s.category}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <ClientBadge clientId={s.client_id} />
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {s.default_burn_per_day}
@@ -184,30 +193,29 @@ function CatalogPage() {
                     {formatIDR(s.unit_price_idr)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => setEditing(s)}
-                        aria-label={`Edit ${s.name}`}
-                      >
-                        <HugeiconsIcon
-                          icon={PencilEdit02Icon}
-                          strokeWidth={2}
-                        />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => setConfirmDelete(s)}
-                        aria-label={`Delete ${s.name}`}
-                      >
-                        <HugeiconsIcon
-                          icon={Delete02Icon}
-                          strokeWidth={2}
-                        />
-                      </Button>
-                    </div>
+                    {canEdit ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => setEditing(s)}
+                          aria-label={`Edit ${s.name}`}
+                        >
+                          <HugeiconsIcon
+                            icon={PencilEdit02Icon}
+                            strokeWidth={2}
+                          />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => setConfirmDelete(s)}
+                          aria-label={`Delete ${s.name}`}
+                        >
+                          <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+                        </Button>
+                      </div>
+                    ) : null}
                   </TableCell>
                 </TableRow>
               ))}
@@ -400,7 +408,9 @@ function SkuDialog({
         </div>
 
         <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+          <DialogClose render={<Button variant="outline" />}>
+            Cancel
+          </DialogClose>
           <Button
             disabled={!valid}
             onClick={() =>

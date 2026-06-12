@@ -52,7 +52,13 @@ import {
   selectStoresForCluster,
   useMockStore,
 } from "@/mocks/state"
-import type { ExceptionReason, Order, OrderLine, SKU, Store } from "@/mocks/types"
+import type {
+  ExceptionReason,
+  Order,
+  OrderLine,
+  SKU,
+  Store,
+} from "@/mocks/types"
 import { ClusterPicker } from "@/components/sup/cluster-picker"
 import type { ClusterOption } from "@/components/sup/cluster-picker"
 import { ClientBadge } from "@/components/shared/client-badge"
@@ -141,12 +147,11 @@ function SupervisorHome() {
 
   const defaultSelection = React.useMemo(
     () => clusterOptions.slice(0, 1).map((o) => o.id),
-    [clusterOptions],
+    [clusterOptions]
   )
 
-  const [selectedClusters, setSelectedClusters] = React.useState<string[]>(
-    defaultSelection,
-  )
+  const [selectedClusters, setSelectedClusters] =
+    React.useState<string[]>(defaultSelection)
 
   React.useEffect(() => {
     if (
@@ -181,20 +186,20 @@ function SupervisorHome() {
       const orders = state.orders.filter((o) => o.store_id === store.id)
       const total = orders.length
       const delivered = orders.filter(
-        (o) => o.status === "delivered" || o.status === "closed",
+        (o) => o.status === "delivered" || o.status === "closed"
       ).length
       const exceptions = orders.filter((o) => o.status === "exception").length
       const active = orders.filter(
         (o) =>
           o.status !== "delivered" &&
           o.status !== "closed" &&
-          o.status !== "exception",
+          o.status !== "exception"
       ).length
       const onTimePct =
         total === 0 ? null : Math.round((delivered / Math.max(total, 1)) * 100)
       const stock = selectInferredStockForStore(state, store.id)
       const lowStock = stock.filter(
-        (s) => s.days_of_cover < STOCK_OUT_THRESHOLD_DAYS,
+        (s) => s.days_of_cover < STOCK_OUT_THRESHOLD_DAYS
       ).length
       const lastDeliveredIso = orders
         .filter((o) => o.delivered_at)
@@ -216,7 +221,7 @@ function SupervisorHome() {
 
   const exceptions = React.useMemo(() => {
     const collected = effectiveClusters.flatMap((id) =>
-      selectExceptionsForCluster(state, id),
+      selectExceptionsForCluster(state, id)
     )
     const seen = new Set<string>()
     return collected
@@ -227,7 +232,7 @@ function SupervisorHome() {
       })
       .sort(
         (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       )
   }, [state, effectiveClusters])
 
@@ -237,23 +242,30 @@ function SupervisorHome() {
       (o) =>
         storeIds.has(o.store_id) &&
         (state.currentTenantScope === "all" ||
-          selectPrimaryClientIdForOrder(state, o.id) === state.currentTenantScope) &&
-        ["at_risk", "breached"].includes(selectOrderSLA(state, o.id).status),
+          selectPrimaryClientIdForOrder(state, o.id) ===
+            state.currentTenantScope) &&
+        ["at_risk", "breached"].includes(selectOrderSLA(state, o.id).status)
     )
     return selectOrdersBySLAUrgency(state, candidates)
   }, [state, stores])
 
   const [openOrderId, setOpenOrderId] = React.useState<string | null>(null)
-  const openOrder = openOrderId ? selectOrderById(state, openOrderId) : undefined
-  const openStore = openOrder ? selectStoreById(state, openOrder.store_id) : undefined
-  const openLines: OrderLine[] = openOrder ? selectOrderLines(state, openOrder.id) : []
+  const openOrder = openOrderId
+    ? selectOrderById(state, openOrderId)
+    : undefined
+  const openStore = openOrder
+    ? selectStoreById(state, openOrder.store_id)
+    : undefined
+  const openLines: OrderLine[] = openOrder
+    ? selectOrderLines(state, openOrder.id)
+    : []
   const openException = openOrder
     ? state.exceptions.find((e) => e.order_id === openOrder.id)
     : undefined
 
   const totalStores = rows.length
   const storesNeedingAttention = rows.filter(
-    (r) => r.exceptions > 0 || r.lowStock >= 2,
+    (r) => r.exceptions > 0 || r.lowStock >= 2
   ).length
   const totalLowStock = rows.reduce((acc, r) => acc + r.lowStock, 0)
 
@@ -282,7 +294,9 @@ function SupervisorHome() {
       >
         <Card size="sm">
           <CardContent className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Stores in view</span>
+            <span className="text-xs text-muted-foreground">
+              Stores in view
+            </span>
             <span className="font-heading text-2xl font-semibold tabular-nums">
               {totalStores}
             </span>
@@ -371,9 +385,7 @@ function SupervisorHome() {
                     </TableCell>
                     <TableCell>
                       {row.lowStock > 0 ? (
-                        <Badge variant="destructive">
-                          {row.lowStock} SKUs
-                        </Badge>
+                        <Badge variant="destructive">{row.lowStock} SKUs</Badge>
                       ) : (
                         <span className="text-muted-foreground">Healthy</span>
                       )}
@@ -449,6 +461,7 @@ function SupervisorHome() {
                           <Badge variant={reasonTone(ex.reason_code)}>
                             {reasonLabel(ex.reason_code)}
                           </Badge>
+                          {order ? <SLABadge orderId={order.id} /> : null}
                           <span className="text-xs text-muted-foreground">
                             {timeAgo(ex.created_at)}
                           </span>
@@ -524,7 +537,10 @@ function SupervisorHome() {
                       </TableCell>
                       <TableCell>
                         <ClientBadge
-                          clientId={selectPrimaryClientIdForOrder(state, order.id)}
+                          clientId={selectPrimaryClientIdForOrder(
+                            state,
+                            order.id
+                          )}
                         />
                       </TableCell>
                       <TableCell>
@@ -537,7 +553,10 @@ function SupervisorHome() {
                           onClick={() => setOpenOrderId(order.id)}
                         >
                           Open
-                          <HugeiconsIcon icon={ArrowRight02Icon} strokeWidth={2} />
+                          <HugeiconsIcon
+                            icon={ArrowRight02Icon}
+                            strokeWidth={2}
+                          />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -660,7 +679,9 @@ function OrderDetail({
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Contact</div>
-            <div className="mt-1 font-medium">{store?.contact ?? "Unknown"}</div>
+            <div className="mt-1 font-medium">
+              {store?.contact ?? "Unknown"}
+            </div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Requested</div>

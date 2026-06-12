@@ -1,16 +1,16 @@
-export * from './types'
-export * from './state'
-export { computeSuggestedOrders } from './engine'
-export { getDemoNow, getDemoNowIso, tick, isoOffset } from './clock'
-export { dcs } from './fixtures/dcs'
-export { stores } from './fixtures/stores'
-export { skus } from './fixtures/skus'
-export { trucks } from './fixtures/trucks'
-export { users } from './fixtures/users'
-export { clients, CATEGORY_TO_CLIENT } from './fixtures/clients'
-export { slaContracts } from './fixtures/sla-contracts'
-export { warehouseZones } from './fixtures/warehouse-zones'
-export { capacityAllocations } from './fixtures/capacity-allocations'
-export { default as calmTuesdayScenario } from './scenarios/calm-tuesday'
-export { default as exceptionFridayScenario } from './scenarios/exception-friday'
-export { default as endOfMonthSurgeScenario } from './scenarios/end-of-month-surge'
+export * from "./types"
+export * from "./state"
+export { computeReplenishmentRequests } from "./engine"
+export { getDemoNow, getDemoNowIso, tick, isoOffset } from "./clock"
+export { dcs } from "./fixtures/dcs"
+export { stores } from "./fixtures/stores"
+export { skus } from "./fixtures/skus"
+export { trucks } from "./fixtures/trucks"
+export { users } from "./fixtures/users"
+export { clients, CATEGORY_TO_CLIENT } from "./fixtures/clients"
+export { slaContracts } from "./fixtures/sla-contracts"
+export { warehouseZones } from "./fixtures/warehouse-zones"
+export { capacityAllocations } from "./fixtures/capacity-allocations"
+export { default as calmTuesdayScenario } from "./scenarios/calm-tuesday"
+export { default as exceptionFridayScenario } from "./scenarios/exception-friday"
+export { default as endOfMonthSurgeScenario } from "./scenarios/end-of-month-surge"

@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Before / After: Putaran 2, Penyelesaian Checklist Refactor 3PL Multi-Tenant</title>
+<style>
+  :root {
+    --fg: #0f172a;
+    --muted: #475569;
+    --subtle: #64748b;
+    --line: #e2e8f0;
+    --line-strong: #cbd5e1;
+    --bg: #ffffff;
+    --panel: #f8fafc;
+    --accent: #1d4ed8;
+    --accent-soft: #eff6ff;
+    --good: #047857;
+    --good-soft: #ecfdf5;
+    --warn: #b45309;
+    --warn-soft: #fffbeb;
+    --bad: #b91c1c;
+    --bad-soft: #fef2f2;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--fg);
+    background: var(--bg);
+    margin: 0;
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 64px 32px 96px; }
+  header.cover { border-bottom: 1px solid var(--line); padding-bottom: 28px; margin-bottom: 40px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.14em; font-size: 11px; color: var(--subtle); font-weight: 600; }
+  h1 { font-size: 34px; line-height: 1.18; margin: 8px 0 6px; letter-spacing: -0.02em; }
+  h2 { font-size: 22px; margin: 56px 0 14px; letter-spacing: -0.01em; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 16px; margin: 28px 0 8px; letter-spacing: -0.005em; }
+  h4 { font-size: 13px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  p { margin: 10px 0; max-width: 76ch; }
+  ul, ol { padding-left: 22px; margin: 8px 0; max-width: 76ch; }
+  li { margin: 4px 0; }
+  .lede { color: var(--muted); font-size: 17px; max-width: 70ch; }
+  .meta { display: grid; grid-template-columns: max-content 1fr; column-gap: 18px; row-gap: 6px; font-size: 13px; margin-top: 18px; color: var(--muted); }
+  .meta dt { color: var(--subtle); }
+  .meta dd { margin: 0; color: var(--fg); }
+  code, kbd, .mono { font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace; font-size: 13px; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--panel); font-size: 12px; color: var(--muted); margin-right: 6px; }
+  .pill.good { background: var(--good-soft); border-color: #a7f3d0; color: var(--good); }
+  .pill.accent { background: var(--accent-soft); border-color: #bfdbfe; color: var(--accent); }
+  .pill.warn { background: var(--warn-soft); border-color: #fde68a; color: var(--warn); }
+  .toc { columns: 2; column-gap: 32px; font-size: 14px; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .nav-li { break-inside: avoid; margin: 3px 0; }
+  .num { color: var(--subtle); margin-right: 6px; font-variant-numeric: tabular-nums; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 40px 0; }
+  .small { font-size: 13px; color: var(--muted); }
+  .banner { border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); border-radius: 8px; padding: 14px 18px; font-size: 14px; font-weight: 600; margin: 24px 0 32px; }
+  .banner span { font-weight: 500; color: #1e3a8a; }
+  .banner.note { border-color: var(--warn); background: var(--warn-soft); color: var(--warn); }
+  .banner.note span { color: #92400e; }
+
+  /* before/after grid */
+  .ba { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0 22px; align-items: stretch; }
+  .ba-col { border-radius: 8px; border: 1px solid var(--line); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .ba-col.before { background: var(--panel); }
+  .ba-col.after { background: var(--good-soft); border-color: #a7f3d0; }
+  .ba-label { text-transform: uppercase; letter-spacing: 0.1em; font-size: 11px; font-weight: 700; }
+  .ba-col.before .ba-label { color: var(--subtle); }
+  .ba-col.after .ba-label { color: var(--good); }
+  .ba-col p, .ba-col ul { margin: 0; max-width: none; font-size: 13px; }
+  .ba-col ul { padding-left: 18px; }
+  .ba-col.new { background: var(--accent-soft); border-color: #bfdbfe; }
+  .ba-col.new .ba-label { color: var(--accent); }
+
+  /* mini app mockup */
+  .mock { border: 1px solid var(--line-strong); border-radius: 8px; background: #fff; overflow: hidden; font-size: 11px; box-shadow: 0 1px 2px rgba(15,23,42,0.04); }
+  .mock-bar { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--line); font-size: 10px; color: var(--muted); }
+  .mock-bar .dots { display: flex; gap: 3px; margin-right: 4px; }
+  .mock-bar .dots span { width: 6px; height: 6px; border-radius: 999px; background: var(--line-strong); display: inline-block; }
+  .mock-body { padding: 10px; }
+  .mock-h { font-weight: 600; font-size: 13px; margin: 0 0 6px; color: var(--fg); }
+  .mock-sub { color: var(--subtle); font-size: 10.5px; margin: 0 0 8px; }
+  table.mtable { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+  table.mtable th, table.mtable td { padding: 5px 7px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+  table.mtable th { background: var(--panel); font-weight: 600; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; }
+  table.mtable tr:last-child td { border-bottom: none; }
+  table.mtable td.num, table.mtable th.num { text-align: right; }
+  .col-new { background: rgba(167, 243, 208, 0.35); }
+
+  .chip { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 999px; font-size: 9.5px; font-weight: 600; border: 1px solid transparent; line-height: 1.6; white-space: nowrap; }
+  .chip.snack { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+  .chip.bev { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
+  .chip.toil { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+  .chip.ok { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+  .chip.risk { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+  .chip.breach { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+  .chip.muted { background: var(--panel); color: var(--muted); border-color: var(--line-strong); }
+  .chip.confirmed { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
+  .chip.transit { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+  .chip.delivered { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+  .chip.exception { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+  .chip.locked { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+
+  .mprogress { height: 7px; border-radius: 999px; background: var(--line); overflow: hidden; width: 100%; }
+  .mprogress > div { height: 100%; background: var(--accent); border-radius: 999px; }
+  .mprogress.over > div { background: var(--bad); }
+
+  .mselect { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 3px 8px; font-size: 10px; color: var(--fg); background: #fff; }
+  .mselect .arrow { color: var(--subtle); font-size: 8px; }
+  .mselect.dim { color: var(--line-strong); border-style: dashed; border-color: var(--line); }
+
+  .mcard { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: #fff; }
+  .mcard .ck { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--subtle); }
+  .mcard .cv { font-size: 16px; font-weight: 700; margin-top: 2px; }
+  .mgrid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .mgrid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--muted); margin: 4px 0 16px; flex-wrap: wrap; }
+  .legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 999px; margin-right: 6px; vertical-align: middle; }
+  .dot.add { background: var(--good); }
+  .dot.change { background: var(--warn); }
+
+  table.diff th { font-size: 12px; }
+  table.diff { width: 100%; border-collapse: collapse; margin: 14px 0 8px; font-size: 14px; }
+  table.diff th, table.diff td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.diff th { background: var(--panel); font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+  table.diff tr:last-child td { border-bottom: none; }
+  table.diff td.before-cell { color: var(--muted); }
+  table.diff td.after-cell { color: var(--fg); }
+  table.diff .added { color: var(--good); font-weight: 600; }
+  table.diff .changed { color: var(--warn); font-weight: 600; }
+  table.diff .kept { color: var(--subtle); font-style: italic; }
+
+  @media print {
+    .wrap { padding: 24px; max-width: none; }
+    table, .mock { page-break-inside: avoid; }
+  }
+  @media (max-width: 760px) {
+    .wrap { padding: 32px 18px; }
+    .ba { grid-template-columns: 1fr; }
+    .toc { columns: 1; }
+    h1 { font-size: 26px; }
+    .mgrid3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="cover">
+  <div class="eyebrow">Ringkasan Visual, Putaran 2</div>
+  <h1>Before / After: Penyelesaian Sisa Checklist Refactor 3PL Multi-Tenant</h1>
+  <p class="lede">
+    Lanjutan dari <code>BEFORE-AFTER-3PL.html</code>. Putaran pertama menambahkan tenant scope, persona client, SLA, dan halaman <code>/allocation</code>. Putaran ini menutup item-item yang masih <em>partial</em> atau <em>missing</em> di <code>PRD-3PL-REFACTOR.html</code>: badge client/SLA di empat halaman tambahan, RBAC nyata di tiga aksi inti, guard akses tenant untuk portal client, <code>client_id</code> pada data stok, dan rename fungsi engine. Mockup di bawah adalah ilustrasi tata letak, bukan tangkapan layar literal.
+  </p>
+  <dl class="meta">
+    <dt>Status</dt><dd><span class="pill good">Selesai diimplementasikan</span> typecheck dan lint bersih (lint pre-existing tidak bertambah)</dd>
+    <dt>Cakupan</dt><dd>4 halaman diperluas (Catalog, Stores, In transit, Reconciliation), RBAC pada 3 aksi, guard akses Client Portal, model data, rename engine</dd>
+    <dt>Batasan proyek</dt><dd>Tetap frontend-only, mock data only, shadcn/ui only (lihat <code>CLAUDE.md</code>)</dd>
+  </dl>
+</header>
+
+<div class="banner">
+  Cara membaca dokumen ini<br />
+  <span>Tiap bagian punya kotak <strong>Sebelum</strong> (abu-abu) dan <strong>Sesudah</strong> (hijau). Kolom atau elemen yang baru ditandai sorot hijau muda di mockup tabel. Bagian 7 berisi catatan desain untuk tiga item checklist yang sengaja <strong>tidak</strong> diimplementasikan secara literal, beserta alasannya.</span>
+</div>
+
+<nav>
+  <h4 style="margin-top:0">Daftar Isi</h4>
+  <ol class="toc">
+    <li class="nav-li"><a href="#catalog">1. Catalog: Kolom Client + RBAC Edit</a></li>
+    <li class="nav-li"><a href="#stores">2. Stores: Kolom Client pada Stok Toko</a></li>
+    <li class="nav-li"><a href="#intransit">3. In Transit: Kolom Client dan SLA</a></li>
+    <li class="nav-li"><a href="#reconciliation">4. Reconciliation: Kolom Client dan SLA</a></li>
+    <li class="nav-li"><a href="#rbac">5. RBAC: Confirm Orders dan Dispatch Wave</a></li>
+    <li class="nav-li"><a href="#clientguard">6. Client Portal: Guard Akses Tenant</a></li>
+    <li class="nav-li"><a href="#data">7. Model Data: client_id pada Inferred Stock dan Rename Engine</a></li>
+    <li class="nav-li"><a href="#divergensi">8. Catatan Desain: Divergensi yang Disengaja</a></li>
+    <li class="nav-li"><a href="#ringkasan">9. Ringkasan Semua Perubahan</a></li>
+  </ol>
+</nav>
+
+<!-- ================= 1. CATALOG ================= -->
+<h2 id="catalog"><span class="num">1.</span>Catalog: Kolom Client + RBAC Edit</h2>
+<p>
+  <code>/catalog</code> (Rina) adalah master SKU yang dipakai engine untuk menyusun rekomendasi. Sebelumnya tidak menunjukkan SKU itu milik client mana, dan tombol tambah/ubah/hapus selalu tampil untuk siapa pun yang membuka halaman.
+</p>
+<div class="ba">
+  <div class="ba-col before">
+    <div class="ba-label">Sebelum</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/catalog</div>
+      <div class="mock-body">
+        <p class="mock-h">Catalog</p>
+        <table class="mtable">
+          <thead><tr><th>SKU</th><th>Category</th><th class="num">Burn/day</th><th class="num">Reorder at</th><th class="num">Unit price</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Renyahku Original 50g</td><td><span class="chip snack">snacks</span></td><td class="num">12</td><td class="num">7 d</td><td class="num">Rp 4.000</td><td><span class="chip muted">Edit / Delete</span></td></tr>
+            <tr><td>Sehatea Melati 350ml</td><td><span class="chip bev">beverages</span></td><td class="num">8</td><td class="num">5 d</td><td class="num">Rp 5.000</td><td><span class="chip muted">Edit / Delete</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ul>
+      <li>Tombol "Add SKU" dan aksi Edit/Delete per baris selalu tampil, tidak ada pengecekan role</li>
+    </ul>
+  </div>
+  <div class="ba-col after">
+    <div class="ba-label">Sesudah</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/catalog</div>
+      <div class="mock-body">
+        <p class="mock-h">Catalog</p>
+        <table class="mtable">
+          <thead><tr><th>SKU</th><th>Category</th><th class="col-new">Client</th><th class="num">Burn/day</th><th class="num">Reorder at</th><th class="num">Unit price</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Renyahku Original 50g</td><td><span class="chip snack">snacks</span></td><td class="col-new"><span class="chip snack">Renyah</span></td><td class="num">12</td><td class="num">7 d</td><td class="num">Rp 4.000</td><td><span class="chip muted">Edit / Delete</span></td></tr>
+            <tr><td>Sehatea Melati 350ml</td><td><span class="chip bev">beverages</span></td><td class="col-new"><span class="chip bev">Segar</span></td><td class="num">8</td><td class="num">5 d</td><td class="num">Rp 5.000</td><td><span class="chip muted">Edit / Delete</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ul>
+      <li><span class="pill good">Baru</span> kolom <strong>Client</strong> antara Category dan Burn/day, isi <code>ClientBadge clientId={sku.client_id}</code></li>
+      <li><span class="pill good">Baru</span> tombol "Add SKU" dan aksi Edit/Delete kini dibungkus <code>canEditCatalog(currentRole)</code> dari <code>src/lib/permissions.ts</code>; hanya tampil untuk role <code>ops-manager</code></li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================= 2. STORES ================= -->
+<h2 id="stores"><span class="num">2.</span>Stores: Kolom Client pada Stok Toko</h2>
+<p>
+  Sheet detail toko di <code>/stores</code> menampilkan tabel "Inferred stock" per SKU. Karena satu toko bisa menjual SKU dari beberapa client (snacks, beverages, toiletries), sebelumnya tidak jelas SKU mana milik client mana tanpa membuka <code>/catalog</code>.
+</p>
+<div class="ba">
+  <div class="ba-col before">
+    <div class="ba-label">Sebelum</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/stores &middot; detail</div>
+      <div class="mock-body">
+        <p class="mock-h">Inferred stock</p>
+        <table class="mtable">
+          <thead><tr><th>SKU</th><th class="num">On-hand</th><th class="num">Cover</th></tr></thead>
+          <tbody>
+            <tr><td>Renyahku Original 50g</td><td class="num">18</td><td class="num"><span class="chip breach">2.1 d, critical</span></td></tr>
+            <tr><td>Sehatea Melati 350ml</td><td class="num">42</td><td class="num"><span class="chip risk">5.4 d, low</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="ba-col after">
+    <div class="ba-label">Sesudah</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/stores &middot; detail</div>
+      <div class="mock-body">
+        <p class="mock-h">Inferred stock</p>
+        <table class="mtable">
+          <thead><tr><th>SKU</th><th class="col-new">Client</th><th class="num">On-hand</th><th class="num">Cover</th></tr></thead>
+          <tbody>
+            <tr><td>Renyahku Original 50g</td><td class="col-new"><span class="chip snack">Renyah</span></td><td class="num">18</td><td class="num"><span class="chip breach">2.1 d, critical</span></td></tr>
+            <tr><td>Sehatea Melati 350ml</td><td class="col-new"><span class="chip bev">Segar</span></td><td class="num">42</td><td class="num"><span class="chip risk">5.4 d, low</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ul>
+      <li><span class="pill good">Baru</span> kolom <strong>Client</strong> antara SKU dan On-hand, isi <code>ClientBadge clientId={row.client_id}</code></li>
+      <li><code>client_id</code> datang langsung dari <code>InferredStock.client_id</code> (lihat bagian 7), tidak perlu join tambahan</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================= 3. IN TRANSIT ================= -->
+<h2 id="intransit"><span class="num">3.</span>In Transit: Kolom Client dan SLA</h2>
+<p>
+  Tabel "stops" pada <code>/in-transit</code> sebelumnya hanya menunjukkan urutan stop, toko, jendela ETA, dan status. Tidak ada cara melihat order itu milik client mana atau seberapa dekat dengan tenggat SLA-nya saat truk sudah jalan.
+</p>
+<div class="ba">
+  <div class="ba-col before">
+    <div class="ba-label">Sebelum</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/in-transit</div>
+      <div class="mock-body">
+        <table class="mtable">
+          <thead><tr><th>Stop</th><th>Store</th><th>ETA window</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Toko Renyah Jaya</td><td>09:00&ndash;10:00</td><td><span class="chip transit">Queued</span></td><td><span class="chip muted">&#8943;</span></td></tr>
+            <tr><td>2</td><td>Warung Bersih Sentosa</td><td>10:00&ndash;11:00</td><td><span class="chip transit">Queued</span></td><td><span class="chip muted">&#8943;</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="ba-col after">
+    <div class="ba-label">Sesudah</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/in-transit</div>
+      <div class="mock-body">
+        <table class="mtable">
+          <thead><tr><th>Stop</th><th>Store</th><th class="col-new">Client</th><th>ETA window</th><th class="col-new">SLA</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Toko Renyah Jaya</td><td class="col-new"><span class="chip snack">Renyah</span></td><td>09:00&ndash;10:00</td><td class="col-new"><span class="chip ok">Due in 9h</span></td><td><span class="chip transit">Queued</span></td><td><span class="chip muted">&#8943;</span></td></tr>
+            <tr><td>2</td><td>Warung Bersih Sentosa</td><td class="col-new"><span class="chip toil">Bersih</span></td><td>10:00&ndash;11:00</td><td class="col-new"><span class="chip risk">Due in 1h</span></td><td><span class="chip transit">Queued</span></td><td><span class="chip muted">&#8943;</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ul>
+      <li><span class="pill good">Baru</span> kolom <strong>Client</strong> setelah Store, isi <code>ClientBadge clientId={selectPrimaryClientIdForOrder(state, o.id)}</code></li>
+      <li><span class="pill good">Baru</span> kolom <strong>SLA</strong> setelah ETA window, isi <code>SLABadge orderId={o.id}</code> (on track / at risk / breached)</li>
+      <li>Driver dan supervisor sekarang bisa melihat prioritas pengiriman tanpa membuka detail order satu-satu</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================= 4. RECONCILIATION ================= -->
+<h2 id="reconciliation"><span class="num">4.</span>Reconciliation: Kolom Client dan SLA</h2>
+<p>
+  <code>/reconciliation</code> menutup hari operasional per wave: status akhir tiap order, waktu kirim, dan alasan jika ada exception. Sebelumnya tidak ada cara cepat melihat client mana yang paling sering kena exception atau gagal SLA.
+</p>
+<div class="ba">
+  <div class="ba-col before">
+    <div class="ba-label">Sebelum</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/reconciliation</div>
+      <div class="mock-body">
+        <table class="mtable">
+          <thead><tr><th>Store</th><th>Status</th><th>Delivered at</th><th>Reason</th></tr></thead>
+          <tbody>
+            <tr><td>Toko Renyah Jaya</td><td><span class="chip delivered">Delivered</span></td><td>08:42</td><td><span style="color:#047857">Clean delivery</span></td></tr>
+            <tr><td>Warung Bersih Sentosa</td><td><span class="chip exception">Exception</span></td><td>-</td><td><span style="color:#b91c1c">Damaged goods, no note</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="ba-col after">
+    <div class="ba-label">Sesudah</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/reconciliation</div>
+      <div class="mock-body">
+        <table class="mtable">
+          <thead><tr><th>Store</th><th class="col-new">Client</th><th>Status</th><th class="col-new">SLA</th><th>Delivered at</th><th>Reason</th></tr></thead>
+          <tbody>
+            <tr><td>Toko Renyah Jaya</td><td class="col-new"><span class="chip snack">Renyah</span></td><td><span class="chip delivered">Delivered</span></td><td class="col-new"><span class="chip ok">On time</span></td><td>08:42</td><td><span style="color:#047857">Clean delivery</span></td></tr>
+            <tr><td>Warung Bersih Sentosa</td><td class="col-new"><span class="chip toil">Bersih</span></td><td><span class="chip exception">Exception</span></td><td class="col-new"><span class="chip breach">Breached 2h ago</span></td><td>-</td><td><span style="color:#b91c1c">Damaged goods, no note</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ul>
+      <li><span class="pill good">Baru</span> kolom <strong>Client</strong> setelah Store dan kolom <strong>SLA</strong> setelah Status</li>
+      <li>Sama seperti In transit, badge berasal dari <code>selectPrimaryClientIdForOrder</code> dan <code>SLABadge</code></li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================= 5. RBAC ================= -->
+<h2 id="rbac"><span class="num">5.</span>RBAC: Confirm Orders dan Dispatch Wave</h2>
+<p>
+  <code>src/lib/permissions.ts</code> sebelumnya hanya berisi <code>canSwitchTenant</code> dan <code>getLockedClientId</code>, dua helper yang dipakai <code>TenantSwitcher</code>. Aksi-aksi penting lain (konfirmasi order, bangun dan kirim wave, edit katalog) bisa dipanggil oleh siapa pun yang membuka halamannya.
+</p>
+<div class="ba">
+  <div class="ba-col before">
+    <div class="ba-label">Sebelum</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/suggested-orders &middot; /dispatch</div>
+      <div class="mock-body">
+        <p class="mock-h">Suggested orders</p>
+        <div style="display:flex; gap:6px; margin-bottom:8px;">
+          <span class="chip muted">Confirm selected</span>
+        </div>
+        <p class="mock-h">Dispatch</p>
+        <div style="display:flex; gap:6px;">
+          <span class="chip muted">Build wave from 3 orders</span>
+          <span class="chip muted">Dispatch wave</span>
+        </div>
+      </div>
+    </div>
+    <ul>
+      <li>Tombol "Confirm selected", "Confirm order", "Build wave", dan "Dispatch wave" selalu tampil dan aktif untuk semua role</li>
+    </ul>
+  </div>
+  <div class="ba-col after">
+    <div class="ba-label">Sesudah</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/suggested-orders &middot; /dispatch</div>
+      <div class="mock-body">
+        <p class="mock-h">Suggested orders &middot; role: ops-manager</p>
+        <div style="display:flex; gap:6px; margin-bottom:8px;">
+          <span class="chip ok">Confirm selected</span>
+        </div>
+        <p class="mock-h">Suggested orders &middot; role: driver</p>
+        <div style="display:flex; gap:6px; margin-bottom:8px;">
+          <span class="chip locked">(tombol disembunyikan)</span>
+        </div>
+        <p class="mock-h">Dispatch &middot; role: ops-manager</p>
+        <div style="display:flex; gap:6px;">
+          <span class="chip ok">Build wave from 3 orders</span>
+          <span class="chip ok">Dispatch wave</span>
+        </div>
+      </div>
+    </div>
+    <ul>
+      <li><span class="pill good">Baru</span> <code>canConfirmOrders(role)</code>: <code>ops-manager</code> dan <code>supervisor</code>. Mengatur tombol "Confirm selected" (bulk), item menu "Confirm order" per baris, dan tombol "Confirm order" di drawer detail pada <code>/suggested-orders</code></li>
+      <li><span class="pill good">Baru</span> <code>canDispatchWave(role)</code>: hanya <code>ops-manager</code>. Mengatur tombol "Build wave from N orders" dan tombol "Dispatch wave" per kartu wave pada <code>/dispatch</code></li>
+      <li><span class="pill good">Baru</span> <code>canEditCatalog(role)</code>: hanya <code>ops-manager</code>. Mengatur tombol "Add SKU" dan aksi Edit/Delete pada <code>/catalog</code> (lihat bagian 1)</li>
+      <li><span class="pill good">Baru</span> <code>canPerform(role, permission)</code>: helper generik di atas keempat fungsi izin (<code>confirm_orders</code>, <code>dispatch_wave</code>, <code>edit_catalog</code>, <code>switch_tenant</code>), untuk pemanggilan seragam jika dibutuhkan halaman lain</li>
+      <li>Role lain (<code>store</code>, <code>driver</code>, <code>exec</code>, <code>client</code>) tidak melihat tombol-tombol ini sama sekali, bukan sekadar disabled, karena halaman tersebut memang bukan ruang kerja mereka</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================= 6. CLIENT PORTAL GUARD ================= -->
+<h2 id="clientguard"><span class="num">6.</span>Client Portal: Guard Akses Tenant</h2>
+<p>
+  Putaran pertama mengunci <code>currentTenantScope</code> ke Renyah Group saat persona "Pak Yanto" (role <code>client</code>) aktif, tapi <code>/client/*</code> belum punya pemeriksaan formal: kalau scope ter-reset ke <code>"all"</code> oleh state lain, halaman tetap render dan jadi tidak konsisten dengan janji "scope terkunci ke client sendiri".
+</p>
+<div class="ba">
+  <div class="ba-col before">
+    <div class="ba-label">Sebelum</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/client</div>
+      <div class="mock-body">
+        <p class="mock-h">Renyah Group</p>
+        <p class="mock-sub">Halaman selalu render isi <code>&lt;Outlet /&gt;</code>, apa pun nilai currentTenantScope</p>
+      </div>
+    </div>
+    <ul>
+      <li><code>src/routes/client/route.tsx</code> hanya membungkus <code>&lt;Outlet /&gt;</code>, tanpa pengecekan</li>
+    </ul>
+  </div>
+  <div class="ba-col after">
+    <div class="ba-label">Sesudah</div>
+    <div class="mock">
+      <div class="mock-bar"><span class="dots"><span></span><span></span><span></span></span>/client &middot; scope tidak cocok</div>
+      <div class="mock-body">
+        <div class="mcard" style="text-align:center; padding:18px;">
+          <div style="font-weight:600; margin-bottom:4px;">Access restricted</div>
+          <div class="ck" style="text-transform:none; letter-spacing:normal;">This portal is scoped to your client account. Switch back to your assigned client to view it.</div>
+        </div>
+      </div>
+    </div>
+    <ul>
+      <li><span class="pill good">Baru</span> <code>assertTenantAccess(role, tenantScope, lockedClientId)</code> di <code>src/lib/permissions.ts</code>: untuk role selain <code>client</code> selalu <code>true</code>; untuk role <code>client</code>, hanya <code>true</code> jika <code>tenantScope === lockedClientId</code></li>
+      <li><code>src/routes/client/route.tsx</code> memanggil <code>getLockedClientId</code> pada user dengan role <code>client</code>, lalu <code>assertTenantAccess</code>. Jika gagal, tampilkan <code>EmptyState</code> "Access restricted" dan tidak render <code>&lt;Outlet /&gt;</code></li>
+      <li>Dalam praktiknya kondisi ini tidak pernah tercapai lewat UI normal (RoleSwitcher selalu mengunci scope saat masuk persona Pak Yanto), tapi guard ini mendokumentasikan dan menegakkan kontrak akses tenant sesuai item <code>assertTenantAccess</code> di PRD</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================= 7. MODEL DATA ================= -->
+<h2 id="data"><span class="num">7.</span>Model Data: client_id pada Inferred Stock dan Rename Engine</h2>
+
+<h3>7.1 <code>InferredStock.client_id</code></h3>
+<div class="ba">
+  <div class="ba-col before">
+    <div class="ba-label">Sebelum</div>
+    <p>
+      <code>InferredStock</code> hanya punya <code>store_id</code>, <code>sku_id</code>, <code>on_hand_estimate</code>, <code>last_recompute_at</code>, <code>days_of_cover</code>. <code>selectInferredStockForClient</code> harus join manual: ambil semua <code>SKU</code> milik client, lalu filter baris stok yang <code>sku_id</code>-nya ada di set tersebut.
+    </p>
+  </div>
+  <div class="ba-col after">
+    <div class="ba-label">Sesudah</div>
+    <p>
+      <code>InferredStock</code> punya field baru <code>client_id: string</code>, diisi dari <code>sku.client_id</code> saat <code>buildInferredStock</code> menghasilkan baris stok (<code>src/mocks/scenarios/_helpers.ts</code>). <code>selectInferredStockForClient</code> disederhanakan jadi filter langsung: <code>state.inferredStock.filter(i =&gt; i.client_id === clientId)</code>. Field ini juga yang dipakai kolom Client baru di <code>/stores</code> (bagian 2).
+    </p>
+  </div>
+</div>
+
+<h3>7.2 Rename <code>computeSuggestedOrders</code> &rarr; <code>computeReplenishmentRequests</code></h3>
+<div class="ba">
+  <div class="ba-col before">
+    <div class="ba-label">Sebelum</div>
+    <p>
+      Fungsi engine bernama <code>computeSuggestedOrders</code> (<code>src/mocks/engine.ts</code>), diekspor dari <code>src/mocks/index.ts</code>, dipakai oleh <code>buildScenario</code> di <code>src/mocks/scenarios/_helpers.ts</code>.
+    </p>
+  </div>
+  <div class="ba-col after">
+    <div class="ba-label">Sesudah</div>
+    <p>
+      Fungsi dan ketiga titik pemakaiannya diganti nama menjadi <code>computeReplenishmentRequests</code>, sesuai istilah yang lebih netral-tenant di PRD (replenishment, bukan "suggested order" yang menyiratkan satu jenis order). Signature, input, dan output (<code>EngineInput</code>/<code>EngineResult</code>) tidak berubah, jadi tidak ada dampak ke UI.
+    </p>
+  </div>
+</div>
+
+<!-- ================= 8. DIVERGENSI ================= -->
+<h2 id="divergensi"><span class="num">8.</span>Catatan Desain: Divergensi yang Disengaja</h2>
+<div class="banner note">
+  Mengapa bagian ini ada<br />
+  <span>Tiga item di <code>PRD-3PL-REFACTOR.html</code> sengaja tidak diimplementasikan persis seperti yang dituliskan, karena penerapan literalnya akan bertentangan dengan bentuk data yang sudah ada atau menambah state yang bisa basi (stale). Catatan ini menjelaskan keputusan tersebut agar tidak ditandai sebagai "belum dikerjakan" pada audit berikutnya.</span>
+</div>
+
+<h3>8.1 Order: <code>client_id</code> / <code>sla_due_at</code> / <code>sla_status</code> sebagai field tersimpan</h3>
+<p>
+  PRD menyebut penambahan tiga field ini langsung pada <code>Order</code>. Implementasi yang berjalan justru menghitungnya secara dinamis lewat <code>selectOrderSLA(state, orderId)</code> dan <code>selectPrimaryClientIdForOrder(state, orderId)</code> di <code>src/mocks/state.ts</code>, yang menurunkan client dari SKU pada baris order dan menghitung status SLA dari <code>SLAContract</code> + waktu "demo now" saat ini.
+</p>
+<ul>
+  <li><strong>Alasan:</strong> <code>sla_status</code> (on_track / at_risk / breached) bergantung pada waktu saat ini dibandingkan <code>sla_due_at</code>. Jika disimpan sebagai field statis, nilainya akan basi begitu "demo now" bergeser (lihat <code>src/mocks/clock.ts</code>) kecuali ada proses recompute terus-menerus, yang berarti menambah kompleksitas state palsu untuk mockup frontend-only.</li>
+  <li>Satu order bisa berisi SKU dari satu client (dalam data demo saat ini memang begitu), tapi menurunkan <code>client_id</code> dari <code>OrderLine -&gt; SKU.client_id</code> tetap lebih aman terhadap perubahan data fixture di masa depan dibanding menyalin nilai ke field terpisah yang bisa tidak sinkron.</li>
+  <li><strong>Hasil:</strong> semua badge Client dan SLA di seluruh halaman (bagian 1&ndash;4, plus yang sudah ada dari putaran pertama) memanggil kedua selector ini, sehingga efek yang terlihat di UI sama dengan yang dijanjikan PRD, hanya sumber datanya derived, bukan stored.</li>
+</ul>
+
+<h3>8.2 Store &rarr; Outlet rename, dan kepemilikan satu client per outlet</h3>
+<p>
+  PRD menyiratkan rename <code>Store</code> menjadi <code>Outlet</code> yang "dimiliki" satu client. Rename ini tidak dilakukan.
+</p>
+<ul>
+  <li><strong>Alasan:</strong> data fixture (<code>src/mocks/fixtures/stores.ts</code> dan <code>skus.ts</code>) memodelkan setiap toko menjual SKU dari ketiga client (snacks, beverages, toiletries) sekaligus, contoh: Toko Renyah Jaya tetap bisa memesan Sehatea (Segar Beverages). Memberi satu <code>client_id</code> per toko akan salah secara faktual dan memaksa penyederhanaan data yang menghilangkan skenario multi-client per toko, yang justru salah satu nilai utama refactor 3PL ini.</li>
+  <li><strong>Pendekatan yang dipakai:</strong> kepemilikan client tetap di level SKU (<code>SKU.client_id</code>) dan stok (<code>InferredStock.client_id</code>, lihat 7.1), bukan di level toko. <code>ClientBadge</code> selalu dirender per baris (per SKU/order), bukan per toko, sehingga satu toko bisa menampilkan badge client yang berbeda-beda di baris yang berbeda &mdash; ini sudah konsisten di <code>/stores</code>, <code>/in-transit</code>, dan <code>/reconciliation</code>.</li>
+  <li>Nama <code>Store</code> dan <code>User.store_id</code> dipertahankan agar konsisten dengan seluruh persona toko (Budi) dan driver yang sudah ada sejak v1.</li>
+</ul>
+
+<h3>8.3 Entitas <code>StockLocation</code> terpisah</h3>
+<p>
+  PRD menyebut kemungkinan entitas <code>StockLocation</code> sebagai lapisan tambahan antara <code>WarehouseZone</code> dan <code>InferredStock</code>.
+</p>
+<ul>
+  <li><strong>Alasan:</strong> <code>WarehouseZone</code> + <code>CapacityAllocation</code> (sudah ada dari putaran pertama, dipakai di <code>/allocation</code>) sudah memodelkan "berapa kapasitas zona dialokasikan ke client mana". <code>InferredStock</code> (kini dengan <code>client_id</code>, lihat 7.1) memodelkan "berapa stok SKU client tersebut diperkirakan ada di tiap toko". Kedua hal ini sudah menjawab pertanyaan yang ingin dijawab <code>StockLocation</code>, tanpa entitas perantara yang tidak punya konsumen UI sendiri.</li>
+  <li><strong>Keputusan:</strong> tidak ditambahkan. Jika ke depannya ada kebutuhan UI baru yang benar-benar memerlukan pemetaan SKU &rarr; lokasi rak fisik di gudang (bukan di toko), <code>StockLocation</code> bisa diperkenalkan saat itu sebagai perubahan terpisah, bukan ditambahkan sekarang sebagai struktur tanpa pemakai.</li>
+</ul>
+
+<h3>8.4 Field tambahan pada <code>Client</code> (<code>short_code</code>, <code>logo_color</code>, <code>status</code>, <code>contract_id</code>)</h3>
+<p>
+  PRD menyebut beberapa field tambahan untuk <code>Client</code>. Field yang sudah ada (<code>id</code>, <code>name</code>, <code>code</code>, <code>category</code>, <code>contact_name</code>, <code>contact_email</code>) sudah cukup untuk seluruh kebutuhan UI saat ini:
+</p>
+<ul>
+  <li><code>code</code> sudah berfungsi sebagai <code>short_code</code> (dipakai di seluruh <code>ClientBadge</code>)</li>
+  <li>Warna badge diturunkan dari <code>category</code> via <code>categoryTone</code>, bukan dari <code>logo_color</code> per client, supaya konsisten dengan palet kategori (snacks/amber, beverages/sky, toiletries/emerald) yang sudah dipakai di banyak tempat lain</li>
+  <li><code>status</code> (aktif/nonaktif client) dan <code>contract_id</code> (relasi eksplisit ke <code>SLAContract</code>) tidak punya konsumen UI: ketiga client demo selalu aktif, dan <code>SLAContract</code> sudah punya <code>client_id</code> sendiri sehingga relasinya bisa dicari dari sisi kontrak (<code>slaContracts.find(c =&gt; c.client_id === clientId)</code>) tanpa field balik di <code>Client</code></li>
+  <li><strong>Keputusan:</strong> tidak ditambahkan field yang tidak dibaca oleh komponen mana pun, sesuai prinsip "tidak mendesain untuk kebutuhan hipotetis" pada proyek ini</li>
+</ul>
+
+<!-- ================= 9. RINGKASAN ================= -->
+<h2 id="ringkasan"><span class="num">9.</span>Ringkasan Semua Perubahan</h2>
+<p class="legend">
+  <span><span class="dot add"></span>Elemen atau guard baru</span>
+  <span><span class="dot change"></span>Halaman lama, dapat tambahan kolom/aksi</span>
+</p>
+<table class="diff">
+  <thead><tr><th style="width:22%">Surface / file</th><th style="width:46%">Sebelum</th><th>Sesudah</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>/catalog</code></td>
+      <td class="before-cell">Tabel: SKU, Category, Burn/day, Reorder at, Unit price, Edit/Delete (selalu tampil)</td>
+      <td class="after-cell"><span class="changed">+</span> kolom Client (<code>ClientBadge</code>); Add SKU dan Edit/Delete dibatasi <code>canEditCatalog</code> (ops-manager saja)</td>
+    </tr>
+    <tr>
+      <td><code>/stores</code> (sheet detail)</td>
+      <td class="before-cell">Tabel Inferred stock: SKU, On-hand, Cover</td>
+      <td class="after-cell"><span class="changed">+</span> kolom Client (<code>ClientBadge</code>) dari <code>InferredStock.client_id</code></td>
+    </tr>
+    <tr>
+      <td><code>/in-transit</code></td>
+      <td class="before-cell">Tabel stops: Stop, Store, ETA window, Status</td>
+      <td class="after-cell"><span class="changed">+</span> kolom Client dan SLA (<code>ClientBadge</code> + <code>SLABadge</code>)</td>
+    </tr>
+    <tr>
+      <td><code>/reconciliation</code></td>
+      <td class="before-cell">Tabel per wave: Store, Status, Delivered at, Reason</td>
+      <td class="after-cell"><span class="changed">+</span> kolom Client dan SLA (<code>ClientBadge</code> + <code>SLABadge</code>)</td>
+    </tr>
+    <tr>
+      <td><code>/suggested-orders</code></td>
+      <td class="before-cell">Confirm selected / Confirm order selalu aktif untuk semua role</td>
+      <td class="after-cell"><span class="added">Baru:</span> dibatasi <code>canConfirmOrders</code> (ops-manager, supervisor)</td>
+    </tr>
+    <tr>
+      <td><code>/dispatch</code></td>
+      <td class="before-cell">Build wave / Dispatch wave selalu aktif untuk semua role</td>
+      <td class="after-cell"><span class="added">Baru:</span> dibatasi <code>canDispatchWave</code> (ops-manager saja)</td>
+    </tr>
+    <tr>
+      <td><code>/client/*</code> (route guard)</td>
+      <td class="before-cell"><code>ClientLayout</code> selalu render <code>&lt;Outlet /&gt;</code></td>
+      <td class="after-cell"><span class="added">Baru:</span> <code>assertTenantAccess</code> menampilkan "Access restricted" jika scope tidak terkunci ke client persona</td>
+    </tr>
+    <tr>
+      <td><code>src/lib/permissions.ts</code></td>
+      <td class="before-cell"><code>canSwitchTenant</code>, <code>getLockedClientId</code></td>
+      <td class="after-cell"><span class="added">+</span> <code>canConfirmOrders</code>, <code>canDispatchWave</code>, <code>canEditCatalog</code>, <code>canPerform</code>, <code>assertTenantAccess</code></td>
+    </tr>
+    <tr>
+      <td><code>InferredStock</code> (types + fixtures)</td>
+      <td class="before-cell">store_id, sku_id, on_hand_estimate, last_recompute_at, days_of_cover</td>
+      <td class="after-cell"><span class="added">+</span> <code>client_id</code>, diisi dari <code>sku.client_id</code> di <code>buildInferredStock</code></td>
+    </tr>
+    <tr>
+      <td><code>src/mocks/engine.ts</code></td>
+      <td class="before-cell"><code>computeSuggestedOrders</code></td>
+      <td class="after-cell"><span class="changed">Rename:</span> <code>computeReplenishmentRequests</code> (3 titik pemakaian)</td>
+    </tr>
+    <tr>
+      <td>Order.client_id / sla_due_at / sla_status</td>
+      <td class="before-cell kept">Tidak ada field tersimpan</td>
+      <td class="after-cell kept">Dipertahankan derived via <code>selectOrderSLA</code> / <code>selectPrimaryClientIdForOrder</code> (lihat 8.1)</td>
+    </tr>
+    <tr>
+      <td>Store &rarr; Outlet, StockLocation, Client fields tambahan</td>
+      <td class="before-cell kept">&ndash;</td>
+      <td class="after-cell kept">Tidak diimplementasikan, lihat catatan desain 8.2&ndash;8.4</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+<p class="small" style="text-align:center; color: var(--subtle);">
+  Akhir dokumen. Bersama <code>BEFORE-AFTER-3PL.html</code> (putaran 1), dokumen ini menutup seluruh checklist <code>PRD-3PL-REFACTOR.html</code>, dengan tiga divergensi yang didokumentasikan secara sengaja pada bagian 8.
+</p>
+
+</div>
+</body>
+</html>

@@ -4,6 +4,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { SearchIcon } from "@hugeicons/core-free-icons"
 
 import { Badge } from "@/components/ui/badge"
+import { ClientBadge } from "@/components/shared/client-badge"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
@@ -33,10 +34,7 @@ import type { OrderStatus, Store } from "@/mocks/types"
 
 import { OrderStatusBadge } from "@/components/dc/status-badge"
 import { EmptyState } from "@/components/dc/empty-state"
-import {
-  formatRelative,
-  formatShortDate,
-} from "@/components/dc/format"
+import { formatRelative, formatShortDate } from "@/components/dc/format"
 import { getActiveDcId } from "@/components/dc/selectors"
 
 export const Route = createFileRoute("/stores")({ component: StoresPage })
@@ -161,9 +159,7 @@ function StoresPage() {
         </div>
         <Select
           value={cluster}
-          onValueChange={(v) =>
-            setCluster(typeof v === "string" ? v : "all")
-          }
+          onValueChange={(v) => setCluster(typeof v === "string" ? v : "all")}
         >
           <SelectTrigger className="w-48">
             <SelectValue />
@@ -211,7 +207,7 @@ function StoresPage() {
                   >
                     <TableCell>
                       <div className="font-medium">{s.name}</div>
-                      <div className="text-xs text-muted-foreground line-clamp-1">
+                      <div className="line-clamp-1 text-xs text-muted-foreground">
                         {s.address}
                       </div>
                     </TableCell>
@@ -268,13 +264,13 @@ function StoresPage() {
               .sort(
                 (a, b) =>
                   new Date(b.created_at).getTime() -
-                  new Date(a.created_at).getTime(),
+                  new Date(a.created_at).getTime()
               )
               .slice(0, 8)}
             exceptions={exceptions.filter((e) =>
               orders.some(
-                (o) => o.id === e.order_id && o.store_id === openStore.id,
-              ),
+                (o) => o.id === e.order_id && o.store_id === openStore.id
+              )
             )}
           />
         ) : null}
@@ -292,6 +288,7 @@ function StoreDetailSheet({
   store: Store
   stock: Array<{
     sku_id: string
+    client_id: string
     on_hand_estimate: number
     days_of_cover: number
     sku: { name?: string; code?: string } | undefined
@@ -317,7 +314,7 @@ function StoreDetailSheet({
 
       <div className="flex-1 space-y-6 overflow-y-auto px-6 pb-4 text-sm">
         <section>
-          <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <h3 className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
             Inferred stock
           </h3>
           {sortedStock.length === 0 ? (
@@ -330,6 +327,7 @@ function StoreDetailSheet({
                 <TableHeader>
                   <TableRow>
                     <TableHead>SKU</TableHead>
+                    <TableHead>Client</TableHead>
                     <TableHead className="text-right">On-hand</TableHead>
                     <TableHead className="text-right">Cover</TableHead>
                   </TableRow>
@@ -346,6 +344,9 @@ function StoreDetailSheet({
                           <div className="text-xs text-muted-foreground">
                             {row.sku?.code}
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <ClientBadge clientId={row.client_id} />
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {row.on_hand_estimate}
@@ -365,7 +366,7 @@ function StoreDetailSheet({
         </section>
 
         <section>
-          <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <h3 className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
             Recent orders
           </h3>
           {orders.length === 0 ? (
@@ -402,7 +403,7 @@ function StoreDetailSheet({
 
         {exceptions.length > 0 ? (
           <section>
-            <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <h3 className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
               Pending exceptions
             </h3>
             <ul className="grid gap-2">

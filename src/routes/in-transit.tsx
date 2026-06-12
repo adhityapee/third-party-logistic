@@ -30,12 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Dialog,
   DialogClose,
@@ -73,7 +68,9 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
-import { useMockStore } from "@/mocks/state"
+import { selectPrimaryClientIdForOrder, useMockStore } from "@/mocks/state"
+import { ClientBadge } from "@/components/shared/client-badge"
+import { SLABadge } from "@/components/shared/sla-badge"
 import type {
   ExceptionReason,
   Order,
@@ -119,13 +116,14 @@ function InTransitPage() {
   const reportException = useMockStore((s) => s.reportException)
   const reassignOrderToWave = useMockStore((s) => s.reassignOrderToWave)
 
-  const activeDcId = getActiveDcId(useMockStore.getState())
+  const state = useMockStore.getState()
+  const activeDcId = getActiveDcId(state)
   const liveWaves = waves.filter(
-    (w) => w.dc_id === activeDcId && w.status === "in_transit",
+    (w) => w.dc_id === activeDcId && w.status === "in_transit"
   )
 
   const [activeWaveId, setActiveWaveId] = React.useState<string | undefined>(
-    liveWaves[0]?.id,
+    liveWaves[0]?.id
   )
 
   React.useEffect(() => {
@@ -137,7 +135,7 @@ function InTransitPage() {
   const [sheetOrderId, setSheetOrderId] = React.useState<string | null>(null)
   const [reportOrderId, setReportOrderId] = React.useState<string | null>(null)
   const [reassignOrderId, setReassignOrderId] = React.useState<string | null>(
-    null,
+    null
   )
 
   const tickClock = (minutes: number) => {
@@ -145,7 +143,7 @@ function InTransitPage() {
     const inFlightOrders = orders.filter(
       (o) =>
         o.status === "in_transit" &&
-        liveWaves.some((w) => w.order_ids.includes(o.id)),
+        liveWaves.some((w) => w.order_ids.includes(o.id))
     )
     if (inFlightOrders.length === 0) {
       toast.info("No active stops to advance.")
@@ -204,7 +202,7 @@ function InTransitPage() {
           </p>
         </div>
 
-        <Card size="sm" className="ring-1 ring-border shadow-none">
+        <Card size="sm" className="shadow-none ring-1 ring-border">
           <CardContent className="flex items-center gap-3 py-2">
             <span className="flex items-center gap-2 text-sm">
               <HugeiconsIcon icon={Clock02Icon} strokeWidth={2} />
@@ -234,7 +232,7 @@ function InTransitPage() {
               return (
                 <TabsTrigger key={w.id} value={w.id}>
                   <HugeiconsIcon icon={RouteIcon} strokeWidth={2} />
-                  {truck?.plate ?? "Truck"} {" "}
+                  {truck?.plate ?? "Truck"}{" "}
                   <span className="text-xs text-muted-foreground">
                     {driver?.name ?? ""}
                   </span>
@@ -265,7 +263,7 @@ function InTransitPage() {
                           route
                         </CardDescription>
                       </div>
-                      <div className="min-w-48 grow max-w-xs">
+                      <div className="max-w-xs min-w-48 grow">
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <span>
                             {delivered} of {total} delivered
@@ -284,7 +282,9 @@ function InTransitPage() {
                       <TableRow>
                         <TableHead>Stop</TableHead>
                         <TableHead>Store</TableHead>
+                        <TableHead>Client</TableHead>
                         <TableHead>ETA window</TableHead>
+                        <TableHead>SLA</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="w-10" />
                       </TableRow>
@@ -305,12 +305,23 @@ function InTransitPage() {
                                 {o.id.slice(0, 16)}
                               </div>
                             </TableCell>
+                            <TableCell>
+                              <ClientBadge
+                                clientId={selectPrimaryClientIdForOrder(
+                                  state,
+                                  o.id
+                                )}
+                              />
+                            </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {o.arrived_at
                                 ? `Arrived ${formatClock(o.arrived_at)}`
                                 : o.delivered_at
                                   ? `Delivered ${formatClock(o.delivered_at)}`
                                   : windowFor(idx)}
+                            </TableCell>
+                            <TableCell>
+                              <SLABadge orderId={o.id} />
                             </TableCell>
                             <TableCell>
                               <StopStatusBadge status={stopStatus} />
@@ -405,11 +416,15 @@ function InTransitPage() {
 
       <ReassignDialog
         open={!!reassignOrderId}
-        order={reassignOrderId ? orders.find((o) => o.id === reassignOrderId) : undefined}
+        order={
+          reassignOrderId
+            ? orders.find((o) => o.id === reassignOrderId)
+            : undefined
+        }
         waves={waves.filter(
           (w) =>
             w.dc_id === activeDcId &&
-            (w.status === "building" || w.status === "in_transit"),
+            (w.status === "building" || w.status === "in_transit")
         )}
         onClose={() => setReassignOrderId(null)}
         onPick={(waveId) => {
@@ -449,7 +464,11 @@ function StopStatusBadge({ status }: { status: StopStatus }) {
     },
   } as const
   const tone = map[status]
-  return <Badge variant="ghost" className={tone.className}>{tone.label}</Badge>
+  return (
+    <Badge variant="ghost" className={tone.className}>
+      {tone.label}
+    </Badge>
+  )
 }
 
 function StopDetailSheet({
@@ -485,14 +504,12 @@ function StopDetailSheet({
           <div>
             <div className="text-xs text-muted-foreground">Delivered</div>
             <div className="font-medium">
-              {order.delivered_at
-                ? formatClock(order.delivered_at)
-                : "Not yet"}
+              {order.delivered_at ? formatClock(order.delivered_at) : "Not yet"}
             </div>
           </div>
         </div>
 
-        <h3 className="mt-6 mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <h3 className="mt-6 mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
           Lines
         </h3>
         <div className="overflow-hidden rounded-2xl border border-border">
@@ -511,7 +528,7 @@ function StopDetailSheet({
                   <TableCell className="text-right tabular-nums">
                     {l.requested_qty}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                  <TableCell className="text-right text-muted-foreground tabular-nums">
                     {l.delivered_qty}
                   </TableCell>
                 </TableRow>
@@ -522,7 +539,7 @@ function StopDetailSheet({
 
         {related.length > 0 ? (
           <div className="mt-6">
-            <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <h3 className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
               Linked exceptions
             </h3>
             <ul className="grid gap-2">
@@ -635,7 +652,9 @@ function ReportExceptionDialog({
         </div>
 
         <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+          <DialogClose render={<Button variant="outline" />}>
+            Cancel
+          </DialogClose>
           <Button onClick={() => onSubmit({ reason, note })}>
             Log exception
           </Button>

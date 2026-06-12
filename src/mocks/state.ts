@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+import { create } from "zustand"
 import type {
   CapacityAllocation,
   Client,
@@ -20,12 +20,12 @@ import type {
   User,
   Wave,
   WarehouseZone,
-} from './types'
-import { CATEGORY_TO_CLIENT } from './fixtures/clients'
-import calmTuesday from './scenarios/calm-tuesday'
-import exceptionFriday from './scenarios/exception-friday'
-import endOfMonthSurge from './scenarios/end-of-month-surge'
-import { getDemoNow } from './clock'
+} from "./types"
+import { CATEGORY_TO_CLIENT } from "./fixtures/clients"
+import calmTuesday from "./scenarios/calm-tuesday"
+import exceptionFriday from "./scenarios/exception-friday"
+import endOfMonthSurge from "./scenarios/end-of-month-surge"
+import { getDemoNow } from "./clock"
 
 export interface MockDataSlice {
   dcs: DC[]
@@ -81,7 +81,7 @@ export interface DeliverStopInput {
 
 export interface ReportExceptionInput {
   orderId: string
-  reasonCode: import('./types').ExceptionReason
+  reasonCode: import("./types").ExceptionReason
   note?: string
   photoUrl?: string
   createdBy: string
@@ -113,7 +113,7 @@ export interface UpsertSkuInput {
   id?: string
   code: string
   name: string
-  category: import('./types').SKUCategory
+  category: import("./types").SKUCategory
   default_burn_per_day: number
   reorder_threshold_days: number
   unit_price_idr: number
@@ -157,9 +157,9 @@ export interface MockState extends MockDataSlice {
 }
 
 const SCENARIOS: Record<ScenarioId, MockDataSlice> = {
-  'calm-tuesday': calmTuesday,
-  'exception-friday': exceptionFriday,
-  'end-of-month-surge': endOfMonthSurge,
+  "calm-tuesday": calmTuesday,
+  "exception-friday": exceptionFriday,
+  "end-of-month-surge": endOfMonthSurge,
 }
 
 function cloneSlice(slice: MockDataSlice): MockDataSlice {
@@ -182,14 +182,17 @@ function cloneSlice(slice: MockDataSlice): MockDataSlice {
   }
 }
 
-const DEFAULT_SCENARIO: ScenarioId = 'calm-tuesday'
-const DEFAULT_ROLE: Role = 'ops-manager'
+const DEFAULT_SCENARIO: ScenarioId = "calm-tuesday"
+const DEFAULT_ROLE: Role = "ops-manager"
 
 function nowIso(): string {
   return getDemoNow().toISOString()
 }
 
-function nextId(prefix: string, existing: ReadonlyArray<{ id: string }>): string {
+function nextId(
+  prefix: string,
+  existing: ReadonlyArray<{ id: string }>
+): string {
   const base = `${prefix}-${getDemoNow().getTime().toString(36)}`
   let i = 1
   let candidate = `${base}-${i}`
@@ -205,7 +208,7 @@ export const useMockStore = create<MockState>((set, get) => ({
   ...cloneSlice(SCENARIOS[DEFAULT_SCENARIO]),
   currentRole: DEFAULT_ROLE,
   currentScenario: DEFAULT_SCENARIO,
-  currentTenantScope: 'all',
+  currentTenantScope: "all",
 
   setCurrentRole: (role) => set({ currentRole: role }),
   setCurrentScenario: (id) => {
@@ -223,9 +226,13 @@ export const useMockStore = create<MockState>((set, get) => ({
     const ids = new Set(orderIds)
     set((state) => ({
       orders: state.orders.map((o) =>
-        ids.has(o.id) && (o.status === 'submitted' || o.status === 'draft')
-          ? { ...o, status: 'confirmed' as OrderStatus, flagged_reason: undefined }
-          : o,
+        ids.has(o.id) && (o.status === "submitted" || o.status === "draft")
+          ? {
+              ...o,
+              status: "confirmed" as OrderStatus,
+              flagged_reason: undefined,
+            }
+          : o
       ),
     }))
   },
@@ -233,19 +240,19 @@ export const useMockStore = create<MockState>((set, get) => ({
   flagOrderForReview: (orderId, reason) => {
     set((state) => ({
       orders: state.orders.map((o) =>
-        o.id === orderId ? { ...o, flagged_reason: reason } : o,
+        o.id === orderId ? { ...o, flagged_reason: reason } : o
       ),
     }))
   },
 
   createWave: ({ dcId, dispatchDate, truckId, driverUserId, orderIds }) => {
     const state = get()
-    const id = nextId('wave', state.waves)
+    const id = nextId("wave", state.waves)
     const wave: Wave = {
       id,
       dc_id: dcId,
       dispatch_date: dispatchDate,
-      status: 'building',
+      status: "building",
       truck_id: truckId,
       driver_user_id: driverUserId,
       order_ids: [...orderIds],
@@ -253,7 +260,7 @@ export const useMockStore = create<MockState>((set, get) => ({
     set({
       waves: [...state.waves, wave],
       orders: state.orders.map((o) =>
-        orderIds.includes(o.id) ? { ...o, wave_id: id } : o,
+        orderIds.includes(o.id) ? { ...o, wave_id: id } : o
       ),
     })
     return id
@@ -269,7 +276,7 @@ export const useMockStore = create<MockState>((set, get) => ({
               driver_user_id:
                 driverUserId !== undefined ? driverUserId : w.driver_user_id,
             }
-          : w,
+          : w
       ),
     }))
   },
@@ -281,12 +288,14 @@ export const useMockStore = create<MockState>((set, get) => ({
       const orderIds = new Set(wave.order_ids)
       return {
         waves: state.waves.map((w) =>
-          w.id === waveId ? { ...w, status: 'in_transit' as const } : w,
+          w.id === waveId ? { ...w, status: "in_transit" as const } : w
         ),
         orders: state.orders.map((o) =>
-          orderIds.has(o.id) && o.status !== 'delivered' && o.status !== 'exception'
-            ? { ...o, status: 'in_transit' as OrderStatus }
-            : o,
+          orderIds.has(o.id) &&
+          o.status !== "delivered" &&
+          o.status !== "exception"
+            ? { ...o, status: "in_transit" as OrderStatus }
+            : o
         ),
       }
     })
@@ -299,10 +308,10 @@ export const useMockStore = create<MockState>((set, get) => ({
           ? {
               ...o,
               wave_id: undefined,
-              status: 'confirmed' as OrderStatus,
+              status: "confirmed" as OrderStatus,
               note: `Rescheduled to ${newDate}`,
             }
-          : o,
+          : o
       ),
       waves: state.waves.map((w) => ({
         ...w,
@@ -314,7 +323,7 @@ export const useMockStore = create<MockState>((set, get) => ({
   reassignOrderToWave: (orderId, newWaveId) => {
     set((state) => ({
       orders: state.orders.map((o) =>
-        o.id === orderId ? { ...o, wave_id: newWaveId } : o,
+        o.id === orderId ? { ...o, wave_id: newWaveId } : o
       ),
       waves: state.waves.map((w) => {
         if (w.id === newWaveId) {
@@ -336,13 +345,13 @@ export const useMockStore = create<MockState>((set, get) => ({
   closeDay: (dcId) => {
     set((state) => {
       const dcStoreIds = new Set(
-        state.stores.filter((s) => s.home_dc_id === dcId).map((s) => s.id),
+        state.stores.filter((s) => s.home_dc_id === dcId).map((s) => s.id)
       )
       return {
         orders: state.orders.map((o) =>
-          dcStoreIds.has(o.store_id) && o.status === 'delivered'
-            ? { ...o, status: 'closed' as OrderStatus }
-            : o,
+          dcStoreIds.has(o.store_id) && o.status === "delivered"
+            ? { ...o, status: "closed" as OrderStatus }
+            : o
         ),
       }
     })
@@ -351,33 +360,46 @@ export const useMockStore = create<MockState>((set, get) => ({
   markStopArrived: ({ orderId }) => {
     set((state) => ({
       orders: state.orders.map((o) =>
-        o.id === orderId ? { ...o, arrived_at: nowIso() } : o,
+        o.id === orderId ? { ...o, arrived_at: nowIso() } : o
       ),
     }))
   },
 
-  deliverStop: ({ orderId, lines, podPhotoUrl, podSignatureUrl, capturedBy }) => {
+  deliverStop: ({
+    orderId,
+    lines,
+    podPhotoUrl,
+    podSignatureUrl,
+    capturedBy,
+  }) => {
     set((state) => {
       const deliveredAt = nowIso()
       const lineMap = new Map(lines.map((l) => [l.skuId, l.deliveredQty]))
       const nextLines = state.orderLines.map((line) =>
         line.order_id === orderId && lineMap.has(line.sku_id)
-          ? { ...line, delivered_qty: lineMap.get(line.sku_id) ?? line.delivered_qty }
-          : line,
+          ? {
+              ...line,
+              delivered_qty: lineMap.get(line.sku_id) ?? line.delivered_qty,
+            }
+          : line
       )
       const pod: POD = {
-        id: nextId('pod', state.pods),
+        id: nextId("pod", state.pods),
         order_id: orderId,
-        photo_url: podPhotoUrl ?? '',
-        signature_url: podSignatureUrl ?? '',
+        photo_url: podPhotoUrl ?? "",
+        signature_url: podSignatureUrl ?? "",
         captured_by: capturedBy,
         captured_at: deliveredAt,
       }
       return {
         orders: state.orders.map((o) =>
           o.id === orderId
-            ? { ...o, status: 'delivered' as OrderStatus, delivered_at: deliveredAt }
-            : o,
+            ? {
+                ...o,
+                status: "delivered" as OrderStatus,
+                delivered_at: deliveredAt,
+              }
+            : o
         ),
         orderLines: nextLines,
         pods: [...state.pods, pod],
@@ -388,18 +410,18 @@ export const useMockStore = create<MockState>((set, get) => ({
   reportException: ({ orderId, reasonCode, note, photoUrl, createdBy }) => {
     set((state) => {
       const exception: Exception = {
-        id: nextId('exc', state.exceptions),
+        id: nextId("exc", state.exceptions),
         order_id: orderId,
         reason_code: reasonCode,
-        note: note ?? '',
-        photo_url: photoUrl ?? '',
+        note: note ?? "",
+        photo_url: photoUrl ?? "",
         created_by: createdBy,
         created_at: nowIso(),
       }
       return {
         exceptions: [exception, ...state.exceptions],
         orders: state.orders.map((o) =>
-          o.id === orderId ? { ...o, status: 'exception' as OrderStatus } : o,
+          o.id === orderId ? { ...o, status: "exception" as OrderStatus } : o
         ),
       }
     })
@@ -408,12 +430,12 @@ export const useMockStore = create<MockState>((set, get) => ({
   editOrderLine: ({ orderId, skuId, requestedQty }) => {
     set((state) => ({
       orders: state.orders.map((o) =>
-        o.id === orderId ? { ...o, edited_by_store: true } : o,
+        o.id === orderId ? { ...o, edited_by_store: true } : o
       ),
       orderLines: state.orderLines.map((l) =>
         l.order_id === orderId && l.sku_id === skuId
           ? { ...l, requested_qty: requestedQty }
-          : l,
+          : l
       ),
     }))
   },
@@ -421,10 +443,10 @@ export const useMockStore = create<MockState>((set, get) => ({
   removeOrderLine: ({ orderId, skuId }) => {
     set((state) => ({
       orders: state.orders.map((o) =>
-        o.id === orderId ? { ...o, edited_by_store: true } : o,
+        o.id === orderId ? { ...o, edited_by_store: true } : o
       ),
       orderLines: state.orderLines.filter(
-        (l) => !(l.order_id === orderId && l.sku_id === skuId),
+        (l) => !(l.order_id === orderId && l.sku_id === skuId)
       ),
     }))
   },
@@ -435,11 +457,11 @@ export const useMockStore = create<MockState>((set, get) => ({
         o.id === orderId
           ? {
               ...o,
-              status: 'submitted' as OrderStatus,
+              status: "submitted" as OrderStatus,
               note: note ?? o.note,
-              source: 'store',
+              source: "store",
             }
-          : o,
+          : o
       ),
     }))
   },
@@ -447,18 +469,22 @@ export const useMockStore = create<MockState>((set, get) => ({
   markStoreReceived: ({ orderId, podPhotoUrl, capturedBy }) => {
     set((state) => {
       const pod: POD = {
-        id: nextId('pod-store', state.pods),
+        id: nextId("pod-store", state.pods),
         order_id: orderId,
-        photo_url: podPhotoUrl ?? '',
-        signature_url: '',
+        photo_url: podPhotoUrl ?? "",
+        signature_url: "",
         captured_by: capturedBy,
         captured_at: nowIso(),
       }
       return {
         orders: state.orders.map((o) =>
           o.id === orderId
-            ? { ...o, status: 'delivered' as OrderStatus, delivered_at: nowIso() }
-            : o,
+            ? {
+                ...o,
+                status: "delivered" as OrderStatus,
+                delivered_at: nowIso(),
+              }
+            : o
         ),
         pods: [...state.pods, pod],
       }
@@ -482,7 +508,7 @@ export const useMockStore = create<MockState>((set, get) => ({
         return updated
       }
     }
-    const id = input.id ?? nextId('sku', state.skus)
+    const id = input.id ?? nextId("sku", state.skus)
     const created: SKU = {
       id,
       code: input.code,
@@ -508,46 +534,69 @@ export function selectStoresForDC(state: MockState, dcId: string): Store[] {
   return state.stores.filter((s) => s.home_dc_id === dcId)
 }
 
-export function selectOrdersByStatus(state: MockState, status: OrderStatus): Order[] {
+export function selectOrdersByStatus(
+  state: MockState,
+  status: OrderStatus
+): Order[] {
   return state.orders.filter((o) => o.status === status)
 }
 
 export function selectExceptionsToday(state: MockState): Exception[] {
   const now = getDemoNow()
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-  return state.exceptions.filter((e) => new Date(e.created_at).getTime() >= startOfDay)
+  const startOfDay = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  ).getTime()
+  return state.exceptions.filter(
+    (e) => new Date(e.created_at).getTime() >= startOfDay
+  )
 }
 
-export function selectStoreById(state: MockState, id: string): Store | undefined {
+export function selectStoreById(
+  state: MockState,
+  id: string
+): Store | undefined {
   return state.stores.find((s) => s.id === id)
 }
 
-export function selectOrderById(state: MockState, id: string): Order | undefined {
+export function selectOrderById(
+  state: MockState,
+  id: string
+): Order | undefined {
   return state.orders.find((o) => o.id === id)
 }
 
-export function selectOrderLines(state: MockState, orderId: string): OrderLine[] {
+export function selectOrderLines(
+  state: MockState,
+  orderId: string
+): OrderLine[] {
   return state.orderLines.filter((l) => l.order_id === orderId)
 }
 
-export function selectOrdersForStore(state: MockState, storeId: string): Order[] {
+export function selectOrdersForStore(
+  state: MockState,
+  storeId: string
+): Order[] {
   return state.orders.filter((o) => o.store_id === storeId)
 }
 
 export function selectDraftOrderForStore(
   state: MockState,
-  storeId: string,
+  storeId: string
 ): Order | undefined {
-  return state.orders.find((o) => o.store_id === storeId && o.status === 'draft')
+  return state.orders.find(
+    (o) => o.store_id === storeId && o.status === "draft"
+  )
 }
 
 export function selectWavesForDC(
   state: MockState,
   dcId: string,
-  date?: string,
+  date?: string
 ): Wave[] {
   return state.waves.filter(
-    (w) => w.dc_id === dcId && (date ? w.dispatch_date === date : true),
+    (w) => w.dc_id === dcId && (date ? w.dispatch_date === date : true)
   )
 }
 
@@ -565,12 +614,12 @@ export function selectOrdersForWave(state: MockState, waveId: string): Order[] {
 export function selectRouteForDriver(
   state: MockState,
   driverUserId: string,
-  date?: string,
+  date?: string
 ): { wave: Wave; orders: Order[] } | undefined {
   const wave = state.waves.find(
     (w) =>
       w.driver_user_id === driverUserId &&
-      (date ? w.dispatch_date === date : w.status !== 'completed'),
+      (date ? w.dispatch_date === date : w.status !== "completed")
   )
   if (!wave) return undefined
   return { wave, orders: selectOrdersForWave(state, wave.id) }
@@ -578,20 +627,20 @@ export function selectRouteForDriver(
 
 export function selectStoresForCluster(
   state: MockState,
-  clusterId: string,
+  clusterId: string
 ): Store[] {
   return state.stores.filter((s) => s.cluster_id === clusterId)
 }
 
 export function selectExceptionsForCluster(
   state: MockState,
-  clusterId: string,
+  clusterId: string
 ): Exception[] {
   const storeIds = new Set(
-    state.stores.filter((s) => s.cluster_id === clusterId).map((s) => s.id),
+    state.stores.filter((s) => s.cluster_id === clusterId).map((s) => s.id)
   )
   const orderIds = new Set(
-    state.orders.filter((o) => storeIds.has(o.store_id)).map((o) => o.id),
+    state.orders.filter((o) => storeIds.has(o.store_id)).map((o) => o.id)
   )
   return state.exceptions.filter((e) => orderIds.has(e.order_id))
 }
@@ -602,19 +651,22 @@ export function selectSkuById(state: MockState, id: string): SKU | undefined {
 
 export function selectInferredStockForStore(
   state: MockState,
-  storeId: string,
+  storeId: string
 ): InferredStock[] {
   return state.inferredStock.filter((i) => i.store_id === storeId)
 }
 
 export function selectClustersForDC(state: MockState, dcId: string): string[] {
   const clusters = new Set(
-    state.stores.filter((s) => s.home_dc_id === dcId).map((s) => s.cluster_id),
+    state.stores.filter((s) => s.home_dc_id === dcId).map((s) => s.cluster_id)
   )
   return Array.from(clusters).sort()
 }
 
-export function selectClientById(state: MockState, id: string): Client | undefined {
+export function selectClientById(
+  state: MockState,
+  id: string
+): Client | undefined {
   return state.clients.find((c) => c.id === id)
 }
 
@@ -624,38 +676,38 @@ export function selectSkusForClient(state: MockState, clientId: string): SKU[] {
 
 export function selectPrimaryClientIdForOrder(
   state: MockState,
-  orderId: string,
+  orderId: string
 ): string | undefined {
   const line = state.orderLines.find((l) => l.order_id === orderId)
   if (!line) return undefined
   return state.skus.find((s) => s.id === line.sku_id)?.client_id
 }
 
-export function selectOrdersForClient(state: MockState, clientId: string): Order[] {
+export function selectOrdersForClient(
+  state: MockState,
+  clientId: string
+): Order[] {
   const clientSkuIds = new Set(
-    state.skus.filter((s) => s.client_id === clientId).map((s) => s.id),
+    state.skus.filter((s) => s.client_id === clientId).map((s) => s.id)
   )
   const orderIds = new Set(
     state.orderLines
       .filter((l) => clientSkuIds.has(l.sku_id))
-      .map((l) => l.order_id),
+      .map((l) => l.order_id)
   )
   return state.orders.filter((o) => orderIds.has(o.id))
 }
 
 export function selectInferredStockForClient(
   state: MockState,
-  clientId: string,
+  clientId: string
 ): InferredStock[] {
-  const clientSkuIds = new Set(
-    state.skus.filter((s) => s.client_id === clientId).map((s) => s.id),
-  )
-  return state.inferredStock.filter((i) => clientSkuIds.has(i.sku_id))
+  return state.inferredStock.filter((i) => i.client_id === clientId)
 }
 
 export function selectSLAContractForClient(
   state: MockState,
-  clientId: string,
+  clientId: string
 ): SLAContract | undefined {
   return state.slaContracts.find((c) => c.client_id === clientId)
 }
@@ -669,11 +721,13 @@ export interface OrderSLA {
 
 export function selectOrderSLA(state: MockState, orderId: string): OrderSLA {
   const order = state.orders.find((o) => o.id === orderId)
-  if (!order) return { status: 'on_track' }
+  if (!order) return { status: "on_track" }
 
   const clientId = selectPrimaryClientIdForOrder(state, orderId)
-  const contract = clientId ? selectSLAContractForClient(state, clientId) : undefined
-  if (!contract) return { clientId, status: 'on_track' }
+  const contract = clientId
+    ? selectSLAContractForClient(state, clientId)
+    : undefined
+  if (!contract) return { clientId, status: "on_track" }
 
   const createdAt = new Date(order.created_at).getTime()
   const windowMs = contract.promised_delivery_hours * 60 * 60 * 1000
@@ -686,7 +740,7 @@ export function selectOrderSLA(state: MockState, orderId: string): OrderSLA {
       clientId,
       contract,
       dueAt,
-      status: deliveredAtMs <= dueAtMs ? 'on_track' : 'breached',
+      status: deliveredAtMs <= dueAtMs ? "on_track" : "breached",
     }
   }
 
@@ -694,11 +748,11 @@ export function selectOrderSLA(state: MockState, orderId: string): OrderSLA {
   const remainingMs = dueAtMs - nowMs
   let status: SLAStatus
   if (remainingMs <= 0) {
-    status = 'breached'
+    status = "breached"
   } else if (remainingMs < windowMs * 0.25) {
-    status = 'at_risk'
+    status = "at_risk"
   } else {
-    status = 'on_track'
+    status = "on_track"
   }
   return { clientId, contract, dueAt, status }
 }
@@ -709,11 +763,15 @@ const SLA_URGENCY_RANK: Record<SLAStatus, number> = {
   on_track: 2,
 }
 
-export function selectOrdersBySLAUrgency(state: MockState, orders: Order[]): Order[] {
+export function selectOrdersBySLAUrgency(
+  state: MockState,
+  orders: Order[]
+): Order[] {
   return [...orders].sort((a, b) => {
     const slaA = selectOrderSLA(state, a.id)
     const slaB = selectOrderSLA(state, b.id)
-    const rankDiff = SLA_URGENCY_RANK[slaA.status] - SLA_URGENCY_RANK[slaB.status]
+    const rankDiff =
+      SLA_URGENCY_RANK[slaA.status] - SLA_URGENCY_RANK[slaB.status]
     if (rankDiff !== 0) return rankDiff
     const dueA = slaA.dueAt ? new Date(slaA.dueAt).getTime() : Infinity
     const dueB = slaB.dueAt ? new Date(slaB.dueAt).getTime() : Infinity
@@ -721,7 +779,10 @@ export function selectOrdersBySLAUrgency(state: MockState, orders: Order[]): Ord
   })
 }
 
-export function selectZonesForDC(state: MockState, dcId: string): WarehouseZone[] {
+export function selectZonesForDC(
+  state: MockState,
+  dcId: string
+): WarehouseZone[] {
   return state.warehouseZones.filter((z) => z.dc_id === dcId)
 }
 
@@ -735,7 +796,7 @@ export interface ZoneCapacity {
 
 export function selectCapacityForZone(
   state: MockState,
-  zoneId: string,
+  zoneId: string
 ): ZoneCapacity | undefined {
   const zone = state.warehouseZones.find((z) => z.id === zoneId)
   if (!zone) return undefined
@@ -754,7 +815,7 @@ export function selectCapacityForZone(
 
 export function selectCapacityAllocationsForDC(
   state: MockState,
-  dcId: string,
+  dcId: string
 ): ZoneCapacity[] {
   return selectZonesForDC(state, dcId)
     .map((zone) => selectCapacityForZone(state, zone.id))
@@ -769,14 +830,14 @@ export function selectCapacityAlerts(state: MockState): ZoneCapacity[] {
 
 export function selectKpiForPeriod(
   _state: MockState,
-  period: 'today' | '7d' | '30d',
+  period: "today" | "7d" | "30d"
 ): {
   stockOutRatePct: number
   onTimePct: number
   acceptancePct: number
   avgCycleHours: number
 } {
-  const factor = period === 'today' ? 1 : period === '7d' ? 1.1 : 1.18
+  const factor = period === "today" ? 1 : period === "7d" ? 1.1 : 1.18
   const baseStockOut = 4.2
   const baseOnTime = 92.4
   const baseAcceptance = 78.5

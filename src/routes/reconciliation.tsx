@@ -12,12 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +23,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useMockStore } from "@/mocks/state"
+import { selectPrimaryClientIdForOrder, useMockStore } from "@/mocks/state"
+import { ClientBadge } from "@/components/shared/client-badge"
+import { SLABadge } from "@/components/shared/sla-badge"
 import type { Order } from "@/mocks/types"
 
 import { OrderStatusBadge } from "@/components/dc/status-badge"
@@ -55,13 +52,13 @@ function ReconciliationPage() {
   const activeDcId = getActiveDcId(state)
   const dcOrders = React.useMemo(
     () => ordersForDc(state, activeDcId),
-    [orders, stores, activeDcId],
+    [orders, stores, activeDcId]
   )
   const dcWaves = waves.filter((w) => w.dc_id === activeDcId)
   const [closeOpen, setCloseOpen] = React.useState(false)
 
   const planned = dcOrders.filter((o) =>
-    ["delivered", "in_transit", "exception", "closed"].includes(o.status),
+    ["delivered", "in_transit", "exception", "closed"].includes(o.status)
   )
 
   const exceptionOrderIds = new Set(exceptions.map((e) => e.order_id))
@@ -70,7 +67,7 @@ function ReconciliationPage() {
       o.status !== "delivered" &&
       o.status !== "closed" &&
       !exceptionOrderIds.has(o.id) &&
-      !o.flagged_reason,
+      !o.flagged_reason
   )
   const canClose = planned.length > 0 && needsReason.length === 0
 
@@ -87,7 +84,7 @@ function ReconciliationPage() {
   }, [planned])
 
   const [activeTab, setActiveTab] = React.useState<string>(
-    groups[0]?.[0] ?? "no-wave",
+    groups[0]?.[0] ?? "no-wave"
   )
 
   React.useEffect(() => {
@@ -97,11 +94,9 @@ function ReconciliationPage() {
   }, [groups, activeTab])
 
   const delivered = planned.filter(
-    (o) => o.status === "delivered" || o.status === "closed",
+    (o) => o.status === "delivered" || o.status === "closed"
   ).length
-  const exceptionsCount = planned.filter(
-    (o) => o.status === "exception",
-  ).length
+  const exceptionsCount = planned.filter((o) => o.status === "exception").length
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
@@ -190,16 +185,16 @@ function ReconciliationPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Store</TableHead>
+                      <TableHead>Client</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>SLA</TableHead>
                       <TableHead>Delivered at</TableHead>
                       <TableHead>Reason</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {list.map((o) => {
-                      const reason = exceptions.find(
-                        (e) => e.order_id === o.id,
-                      )
+                      const reason = exceptions.find((e) => e.order_id === o.id)
                       return (
                         <TableRow key={o.id}>
                           <TableCell>
@@ -211,7 +206,18 @@ function ReconciliationPage() {
                             </div>
                           </TableCell>
                           <TableCell>
+                            <ClientBadge
+                              clientId={selectPrimaryClientIdForOrder(
+                                state,
+                                o.id
+                              )}
+                            />
+                          </TableCell>
+                          <TableCell>
                             <OrderStatusBadge status={o.status} />
+                          </TableCell>
+                          <TableCell>
+                            <SLABadge orderId={o.id} />
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {o.delivered_at
@@ -308,4 +314,3 @@ function SummaryTile({
     </Card>
   )
 }
-

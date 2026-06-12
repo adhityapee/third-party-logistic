@@ -1,36 +1,45 @@
-export type Role = 'ops-manager' | 'store' | 'driver' | 'supervisor' | 'exec' | 'client'
+export type Role =
+  | "ops-manager"
+  | "store"
+  | "driver"
+  | "supervisor"
+  | "exec"
+  | "client"
 
-export type ScenarioId = 'calm-tuesday' | 'exception-friday' | 'end-of-month-surge'
+export type ScenarioId =
+  | "calm-tuesday"
+  | "exception-friday"
+  | "end-of-month-surge"
 
-export type TenantScope = 'all' | string
+export type TenantScope = "all" | string
 
-export type SLATier = 'standard' | 'priority' | 'express'
+export type SLATier = "standard" | "priority" | "express"
 
-export type SLAStatus = 'on_track' | 'at_risk' | 'breached'
+export type SLAStatus = "on_track" | "at_risk" | "breached"
 
 export type OrderStatus =
-  | 'draft'
-  | 'submitted'
-  | 'confirmed'
-  | 'picking'
-  | 'picked'
-  | 'in_transit'
-  | 'delivered'
-  | 'exception'
-  | 'closed'
+  | "draft"
+  | "submitted"
+  | "confirmed"
+  | "picking"
+  | "picked"
+  | "in_transit"
+  | "delivered"
+  | "exception"
+  | "closed"
 
 export type ExceptionReason =
-  | 'store_closed'
-  | 'refused'
-  | 'damaged'
-  | 'address_wrong'
-  | 'other'
+  | "store_closed"
+  | "refused"
+  | "damaged"
+  | "address_wrong"
+  | "other"
 
-export type OrderSource = 'engine' | 'store' | 'manual'
+export type OrderSource = "engine" | "store" | "manual"
 
-export type WaveStatus = 'building' | 'dispatched' | 'in_transit' | 'completed'
+export type WaveStatus = "building" | "dispatched" | "in_transit" | "completed"
 
-export type SKUCategory = 'snacks' | 'beverages' | 'toiletries'
+export type SKUCategory = "snacks" | "beverages" | "toiletries"
 
 export interface DC {
   id: string
@@ -94,6 +103,7 @@ export interface CapacityAllocation {
 export interface InferredStock {
   store_id: string
   sku_id: string
+  client_id: string
   on_hand_estimate: number
   last_recompute_at: string
   days_of_cover: number

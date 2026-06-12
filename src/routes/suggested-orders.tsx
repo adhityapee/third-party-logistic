@@ -83,6 +83,7 @@ import {
   storeName,
 } from "@/components/dc/selectors"
 import { EmptyState } from "@/components/dc/empty-state"
+import { canConfirmOrders } from "@/lib/permissions"
 
 export const Route = createFileRoute("/suggested-orders")({
   component: SuggestedOrdersPage,
@@ -101,17 +102,19 @@ function SuggestedOrdersPage() {
   const confirmOrders = useMockStore((s) => s.confirmOrders)
   const flagOrderForReview = useMockStore((s) => s.flagOrderForReview)
   const currentTenantScope = useMockStore((s) => s.currentTenantScope)
+  const currentRole = useMockStore((s) => s.currentRole)
+  const canConfirm = canConfirmOrders(currentRole)
 
   const state = useMockStore.getState()
   const activeDcId = getActiveDcId(state)
   const dcOrders = React.useMemo(
     () => ordersForDc(state, activeDcId),
-    [orders, stores, activeDcId],
+    [orders, stores, activeDcId]
   )
 
   const skuPrice = React.useCallback(
     (skuId: string) => skus.find((s) => s.id === skuId)?.unit_price_idr ?? 0,
-    [skus],
+    [skus]
   )
 
   const skuById = React.useMemo(() => {
@@ -131,12 +134,11 @@ function SuggestedOrdersPage() {
     return map
   }, [orderLines, skuPrice])
 
-  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>(
-    "submitted",
-  )
+  const [statusFilter, setStatusFilter] =
+    React.useState<StatusFilter>("submitted")
   const [search, setSearch] = React.useState("")
   const [sourceFilter, setSourceFilter] = React.useState<"all" | OrderSource>(
-    "all",
+    "all"
   )
   const [sortKey, setSortKey] = React.useState<SortKey>("total")
   const [sortDir, setSortDir] = React.useState<SortDir>("desc")
@@ -157,11 +159,9 @@ function SuggestedOrdersPage() {
         o.status === "confirmed"
       if (!isCandidate) return false
 
-      if (statusFilter === "submitted" && o.status !== "submitted")
-        return false
+      if (statusFilter === "submitted" && o.status !== "submitted") return false
       if (statusFilter === "needs_review" && !o.flagged_reason) return false
-      if (statusFilter === "confirmed" && o.status !== "confirmed")
-        return false
+      if (statusFilter === "confirmed" && o.status !== "confirmed") return false
 
       if (sourceFilter !== "all" && o.source !== sourceFilter) return false
 
@@ -185,7 +185,7 @@ function SuggestedOrdersPage() {
       let cmp = 0
       if (sortKey === "store") {
         cmp = storeName(stores, a.store_id).localeCompare(
-          storeName(stores, b.store_id),
+          storeName(stores, b.store_id)
         )
       } else if (sortKey === "lines") {
         cmp = ta.lineCount - tb.lineCount
@@ -322,8 +322,9 @@ function SuggestedOrdersPage() {
           Suggested orders
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          The engine proposes a basket per store from inferred stock and burn rate.
-          Confirm what looks right, flag what doesn't, edit before dispatch.
+          The engine proposes a basket per store from inferred stock and burn
+          rate. Confirm what looks right, flag what doesn't, edit before
+          dispatch.
         </p>
       </header>
 
@@ -390,9 +391,11 @@ function SuggestedOrdersPage() {
             >
               Clear
             </Button>
-            <Button size="sm" onClick={() => setConfirmBulkOpen(true)}>
-              Confirm selected
-            </Button>
+            {canConfirm ? (
+              <Button size="sm" onClick={() => setConfirmBulkOpen(true)}>
+                Confirm selected
+              </Button>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -459,9 +462,7 @@ function SuggestedOrdersPage() {
                     key={order.id}
                     data-active={isActive ? "true" : undefined}
                     className={
-                      isActive
-                        ? "cursor-pointer bg-muted/50"
-                        : "cursor-pointer"
+                      isActive ? "cursor-pointer bg-muted/50" : "cursor-pointer"
                     }
                     onClick={() => {
                       setActiveRow(order.id)
@@ -501,11 +502,17 @@ function SuggestedOrdersPage() {
                     </TableCell>
                     <TableCell>
                       <ClientBadge
-                        clientId={selectPrimaryClientIdForOrder(state, order.id)}
+                        clientId={selectPrimaryClientIdForOrder(
+                          state,
+                          order.id
+                        )}
                       />
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="font-normal capitalize">
+                      <Badge
+                        variant="outline"
+                        className="font-normal capitalize"
+                      >
                         {order.source}
                       </Badge>
                     </TableCell>
@@ -543,11 +550,13 @@ function SuggestedOrdersPage() {
                           />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => runConfirm([order.id])}
-                          >
-                            Confirm order
-                          </DropdownMenuItem>
+                          {canConfirm ? (
+                            <DropdownMenuItem
+                              onClick={() => runConfirm([order.id])}
+                            >
+                              Confirm order
+                            </DropdownMenuItem>
+                          ) : null}
                           <DropdownMenuItem
                             onClick={() => {
                               setFlagNote(order.flagged_reason ?? "")
@@ -579,15 +588,10 @@ function SuggestedOrdersPage() {
         </Card>
       )}
 
-      <AlertDialog
-        open={confirmBulkOpen}
-        onOpenChange={setConfirmBulkOpen}
-      >
+      <AlertDialog open={confirmBulkOpen} onOpenChange={setConfirmBulkOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Confirm {selected.size} orders
-            </AlertDialogTitle>
+            <AlertDialogTitle>Confirm {selected.size} orders</AlertDialogTitle>
             <AlertDialogDescription>
               The orders will move to confirmed and become available for wave
               building. Confirmed orders can still be flagged before dispatch.
@@ -659,9 +663,11 @@ function SuggestedOrdersPage() {
             lines={orderLines.filter((l) => l.order_id === drawerOrder.id)}
             skuById={skuById}
             inferredStock={inferredStock.filter(
-              (i) => i.store_id === drawerOrder.store_id,
+              (i) => i.store_id === drawerOrder.store_id
             )}
-            onConfirm={() => runConfirm([drawerOrder.id])}
+            onConfirm={
+              canConfirm ? () => runConfirm([drawerOrder.id]) : undefined
+            }
             onFlag={() => {
               setFlagNote(drawerOrder.flagged_reason ?? "")
               setFlagOrderId(drawerOrder.id)
@@ -724,7 +730,7 @@ function OrderDetailSheet({
     on_hand_estimate: number
     days_of_cover: number
   }>
-  onConfirm: () => void
+  onConfirm?: () => void
   onFlag: () => void
 }) {
   const lowCover = inferredStock
@@ -742,7 +748,8 @@ function OrderDetailSheet({
       <SheetHeader>
         <SheetTitle>{storeNameOf(order.store_id)}</SheetTitle>
         <SheetDescription>
-          Order {order.id.slice(0, 16)}, created {formatRelative(order.created_at)}
+          Order {order.id.slice(0, 16)}, created{" "}
+          {formatRelative(order.created_at)}
         </SheetDescription>
       </SheetHeader>
 
@@ -774,7 +781,7 @@ function OrderDetailSheet({
         ) : null}
 
         <div>
-          <h3 className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          <h3 className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
             Lines
           </h3>
           <div className="overflow-hidden rounded-2xl border border-border">
@@ -793,7 +800,9 @@ function OrderDetailSheet({
                   return (
                     <TableRow key={l.sku_id}>
                       <TableCell>
-                        <div className="font-medium">{sku?.name ?? l.sku_id}</div>
+                        <div className="font-medium">
+                          {sku?.name ?? l.sku_id}
+                        </div>
                         <div className="text-xs text-muted-foreground">
                           {sku?.code}
                         </div>
@@ -804,7 +813,7 @@ function OrderDetailSheet({
                       <TableCell className="text-right tabular-nums">
                         {l.requested_qty}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                      <TableCell className="text-right text-muted-foreground tabular-nums">
                         {l.delivered_qty}
                       </TableCell>
                     </TableRow>
@@ -816,7 +825,7 @@ function OrderDetailSheet({
         </div>
 
         <div>
-          <h3 className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          <h3 className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
             Low cover at this store
           </h3>
           {lowCover.length === 0 ? (
@@ -848,10 +857,12 @@ function OrderDetailSheet({
         <Button variant="outline" onClick={onFlag}>
           Flag for review
         </Button>
-        <Button onClick={onConfirm}>
-          Confirm order
-          <HugeiconsIcon icon={ArrowRight02Icon} strokeWidth={2} />
-        </Button>
+        {onConfirm ? (
+          <Button onClick={onConfirm}>
+            Confirm order
+            <HugeiconsIcon icon={ArrowRight02Icon} strokeWidth={2} />
+          </Button>
+        ) : null}
       </SheetFooter>
     </SheetContent>
   )

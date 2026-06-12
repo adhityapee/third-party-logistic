@@ -69,15 +69,13 @@ import type { Wave } from "@/mocks/types"
 import { SLABadge } from "@/components/shared/sla-badge"
 import { WaveStatusBadge } from "@/components/dc/status-badge"
 import { EmptyState } from "@/components/dc/empty-state"
-import {
-  formatCompactIDR,
-  formatShortDate,
-} from "@/components/dc/format"
+import { formatCompactIDR, formatShortDate } from "@/components/dc/format"
 import {
   getActiveDcId,
   storeName,
   unassignedConfirmed,
 } from "@/components/dc/selectors"
+import { canDispatchWave } from "@/lib/permissions"
 
 export const Route = createFileRoute("/dispatch")({ component: DispatchPage })
 
@@ -94,6 +92,8 @@ function DispatchPage() {
   const assignWave = useMockStore((s) => s.assignWave)
   const reassignOrderToWave = useMockStore((s) => s.reassignOrderToWave)
   const currentTenantScope = useMockStore((s) => s.currentTenantScope)
+  const currentRole = useMockStore((s) => s.currentRole)
+  const canDispatch = canDispatchWave(currentRole)
 
   const state = useMockStore.getState()
   const activeDcId = getActiveDcId(state)
@@ -101,19 +101,19 @@ function DispatchPage() {
     const base = unassignedConfirmed(state, activeDcId).filter(
       (o) =>
         currentTenantScope === "all" ||
-        selectPrimaryClientIdForOrder(state, o.id) === currentTenantScope,
+        selectPrimaryClientIdForOrder(state, o.id) === currentTenantScope
     )
     return selectOrdersBySLAUrgency(state, base)
   }, [orders, stores, activeDcId, state, currentTenantScope])
   const dcWaves = waves.filter((w) => w.dc_id === activeDcId)
   const dcTrucks = trucks.filter((t) => t.dc_id === activeDcId)
   const dcDrivers = users.filter(
-    (u) => u.role === "driver" && u.dc_id === activeDcId,
+    (u) => u.role === "driver" && u.dc_id === activeDcId
   )
 
   const priceOf = React.useCallback(
     (skuId: string) => skus.find((s) => s.id === skuId)?.unit_price_idr ?? 0,
-    [skus],
+    [skus]
   )
 
   const totalsByOrder = React.useMemo(() => {
@@ -121,7 +121,7 @@ function DispatchPage() {
     for (const l of orderLines) {
       map.set(
         l.order_id,
-        (map.get(l.order_id) ?? 0) + priceOf(l.sku_id) * l.requested_qty,
+        (map.get(l.order_id) ?? 0) + priceOf(l.sku_id) * l.requested_qty
       )
     }
     return map
@@ -158,13 +158,16 @@ function DispatchPage() {
             them out.
           </p>
         </div>
-        <Button
-          onClick={() => setBuildOpen(true)}
-          disabled={selected.size === 0}
-        >
-          <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-          Build wave from {selected.size} order{selected.size === 1 ? "" : "s"}
-        </Button>
+        {canDispatch ? (
+          <Button
+            onClick={() => setBuildOpen(true)}
+            disabled={selected.size === 0}
+          >
+            <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+            Build wave from {selected.size} order
+            {selected.size === 1 ? "" : "s"}
+          </Button>
+        ) : null}
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
@@ -195,8 +198,7 @@ function DispatchPage() {
                       <Checkbox
                         checked={selected.size === confirmed.length}
                         indeterminate={
-                          selected.size > 0 &&
-                          selected.size < confirmed.length
+                          selected.size > 0 && selected.size < confirmed.length
                         }
                         onCheckedChange={toggleAll}
                       />
@@ -210,7 +212,7 @@ function DispatchPage() {
                 <TableBody>
                   {confirmed.map((o) => {
                     const lineCount = orderLines.filter(
-                      (l) => l.order_id === o.id,
+                      (l) => l.order_id === o.id
                     ).length
                     return (
                       <TableRow
@@ -276,11 +278,12 @@ function DispatchPage() {
                   wave={wave}
                   storeNameOf={(id) => storeName(stores, id)}
                   ordersInWave={orders.filter((o) =>
-                    wave.order_ids.includes(o.id),
+                    wave.order_ids.includes(o.id)
                   )}
                   otherWaves={dcWaves.filter((w) => w.id !== wave.id)}
                   trucks={dcTrucks}
                   drivers={dcDrivers}
+                  canDispatchPermission={canDispatch}
                   onDispatch={() => {
                     dispatchWave({ waveId: wave.id })
                     toast.success("Wave dispatched", {
@@ -339,6 +342,7 @@ function WaveCard({
   otherWaves,
   trucks,
   drivers,
+  canDispatchPermission,
   onDispatch,
   onAssign,
   onReassign,
@@ -349,6 +353,7 @@ function WaveCard({
   otherWaves: Wave[]
   trucks: Array<{ id: string; plate: string }>
   drivers: Array<{ id: string; name: string }>
+  canDispatchPermission: boolean
   onDispatch: () => void
   onAssign: (input: { truckId?: string; driverUserId?: string }) => void
   onReassign: (orderId: string, newWaveId: string) => void
@@ -356,7 +361,10 @@ function WaveCard({
   const truck = trucks.find((t) => t.id === wave.truck_id)
   const driver = drivers.find((d) => d.id === wave.driver_user_id)
   const canDispatch =
-    wave.status === "building" && !!wave.truck_id && !!wave.driver_user_id
+    canDispatchPermission &&
+    wave.status === "building" &&
+    !!wave.truck_id &&
+    !!wave.driver_user_id
 
   return (
     <Card size="sm">
@@ -396,7 +404,7 @@ function WaveCard({
             </span>
           </HoverCardTrigger>
           <HoverCardContent className="w-80">
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <div className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
               Stops
             </div>
             <ol className="mt-2 grid gap-1 text-sm">
