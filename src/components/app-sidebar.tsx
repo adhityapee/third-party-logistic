@@ -129,10 +129,10 @@ export function AppSidebar() {
           </div>
           <div className="flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:hidden">
             <span className="font-heading text-sm font-semibold tracking-tight">
-              kdmp
+              KDMP
             </span>
             <span className="text-[11px] text-muted-foreground">
-              FMCG distribution
+              Kargo Desa Malang Poenja
             </span>
           </div>
         </div>

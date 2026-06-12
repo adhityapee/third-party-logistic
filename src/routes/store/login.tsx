@@ -48,7 +48,7 @@ function StoreLogin() {
         </span>
         <div className="text-center">
           <h1 className="font-heading text-xl font-semibold tracking-tight">
-            {step === "phone" ? "Masuk ke kdmp" : "Masukkan kode"}
+            {step === "phone" ? "Masuk ke KDMP" : "Masukkan kode"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {step === "phone"
@@ -115,7 +115,7 @@ function StoreLogin() {
       )}
 
       <p className="mt-auto text-center text-[11px] text-muted-foreground">
-        Dengan masuk, Anda menyetujui Syarat Layanan kdmp.
+        Dengan masuk, Anda menyetujui Syarat Layanan KDMP.
       </p>
     </div>
   )

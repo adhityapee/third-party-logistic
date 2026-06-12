@@ -19,6 +19,19 @@ import {
 
 export const Route = createFileRoute("/allocation")({ component: AllocationPage })
 
+function capacityTone(pct: number): { bar: string; text: string } {
+  if (pct >= 90) return { bar: "bg-destructive", text: "text-destructive" }
+  if (pct >= 70)
+    return {
+      bar: "bg-amber-500",
+      text: "text-amber-700 dark:text-amber-300",
+    }
+  return {
+    bar: "bg-emerald-500",
+    text: "text-emerald-700 dark:text-emerald-300",
+  }
+}
+
 function AllocationPage() {
   const state = useMockStore()
   const activeDcId = getActiveDcId(state)
@@ -85,6 +98,7 @@ function AllocationPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {zones.map((z) => {
             const overCapacity = z.pct > 100
+            const tone = capacityTone(z.pct)
             return (
               <Card key={z.zone.id}>
                 <CardHeader>
@@ -101,9 +115,7 @@ function AllocationPage() {
                 <CardContent className="flex flex-col gap-3">
                   <Progress value={Math.min(z.pct, 100)}>
                     <ProgressTrack>
-                      <ProgressIndicator
-                        className={overCapacity ? "bg-destructive" : undefined}
-                      />
+                      <ProgressIndicator className={tone.bar} />
                     </ProgressTrack>
                   </Progress>
                   <div className="flex items-center justify-between text-sm">
@@ -111,7 +123,9 @@ function AllocationPage() {
                       {z.used.toLocaleString("id-ID")} /{" "}
                       {z.allocated.toLocaleString("id-ID")} units
                     </span>
-                    <span className="font-medium tabular-nums">{z.pct}%</span>
+                    <span className={`font-medium tabular-nums ${tone.text}`}>
+                      {z.pct}%
+                    </span>
                   </div>
                   {overCapacity ? (
                     <Badge

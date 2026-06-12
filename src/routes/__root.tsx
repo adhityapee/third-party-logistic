@@ -31,7 +31,7 @@ export const Route = createRootRoute({
         name: "viewport",
         content: "width=device-width, initial-scale=1",
       },
-      { title: "kdmp, FMCG distribution control" },
+      { title: "KDMP (Kargo Desa Malang Poenja), 3PL warehouse operations" },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
   }),
