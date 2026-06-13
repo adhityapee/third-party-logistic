@@ -1,3 +1,5 @@
+import { useShallow } from "zustand/react/shallow"
+
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { formatRelative } from "@/components/dc/format"
@@ -28,7 +30,7 @@ export function SLABadge({
   className?: string
   showDue?: boolean
 }) {
-  const sla = useMockStore((s) => selectOrderSLA(s, orderId))
+  const sla = useMockStore(useShallow((s) => selectOrderSLA(s, orderId)))
   if (!sla.contract) return null
   const tone = slaTone[sla.status]
   return (
