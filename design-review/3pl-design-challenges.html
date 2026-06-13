@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Design Engineering Challenges, 3PL Multi-Tenant: Status Implementasi KDMP</title>
+<style>
+  :root {
+    --bg: #f7f7f5;
+    --card: #ffffff;
+    --border: #e4e4e0;
+    --text: #1c1c1a;
+    --muted: #6b6b66;
+    --accent: #2563eb;
+    --ok-bg: #ecfdf5;
+    --ok-text: #047857;
+    --ok-border: #a7f3d0;
+    --partial-bg: #fffbeb;
+    --partial-text: #b45309;
+    --partial-border: #fde68a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Inter, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+  }
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+  header.page {
+    margin-bottom: 40px;
+  }
+  header.page h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 8px;
+  }
+  header.page p {
+    color: var(--muted);
+    margin: 0;
+    max-width: 720px;
+  }
+  .ref-companies {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .ref-companies span {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4338ca;
+    border: 1px solid #e0e7ff;
+  }
+
+  .challenge {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 28px;
+  }
+  .challenge-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .challenge-head .titles {
+    flex: 1;
+    min-width: 240px;
+  }
+  .challenge-num {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 4px;
+  }
+  .challenge-head h2 {
+    font-size: 20px;
+    margin: 0;
+    font-weight: 700;
+  }
+  .challenge-head h3 {
+    font-size: 14px;
+    margin: 4px 0 0;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .status-badge.done {
+    background: var(--ok-bg);
+    color: var(--ok-text);
+    border: 1px solid var(--ok-border);
+  }
+  .status-badge.partial {
+    background: var(--partial-bg);
+    color: var(--partial-text);
+    border: 1px solid var(--partial-border);
+  }
+
+  .points {
+    margin: 0 0 18px;
+    padding-left: 20px;
+    color: var(--text);
+  }
+  .points li {
+    margin-bottom: 6px;
+  }
+  .points li::marker {
+    color: var(--muted);
+  }
+
+  .assessment {
+    background: #fafaf8;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 18px;
+  }
+  .assessment h4 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .assessment p {
+    margin: 0 0 8px;
+  }
+  .assessment p:last-child {
+    margin-bottom: 0;
+  }
+  .assessment code {
+    background: #eee;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 12.5px;
+  }
+
+  figure {
+    margin: 0;
+  }
+  figure img {
+    width: 100%;
+    display: block;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  figcaption {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .tech-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .tech-card h4 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .tech-card p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .tech-card .check {
+    color: var(--ok-text);
+    font-weight: 700;
+    margin-right: 6px;
+  }
+
+  section.tech {
+    margin-top: 48px;
+  }
+  section.tech h2 {
+    font-size: 20px;
+    margin: 0 0 4px;
+  }
+  section.tech > p {
+    color: var(--muted);
+    margin: 0;
+  }
+
+  .summary {
+    margin-top: 48px;
+    padding: 24px 28px;
+    border-radius: 16px;
+    background: #111827;
+    color: #f3f4f6;
+  }
+  .summary h2 {
+    margin: 0 0 8px;
+    font-size: 18px;
+  }
+  .summary p {
+    margin: 0;
+    color: #cbd5e1;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="page">
+    <h1>Design Engineering Challenges: 3PL Multi-Tenant</h1>
+    <p>
+      Terjemahan tantangan desain untuk platform 3PL multi-tenant (gudang yang melayani beberapa brand,
+      gaya operasi seperti Ninja Van, J&amp;T Express, dan DHL Supply Chain), dipetakan ke status
+      implementasi pada mockup KDMP saat ini (branch <code>main</code>, setelah commit
+      <code>776f8a0</code>).
+    </p>
+    <div class="ref-companies">
+      <span>Ninja Van</span>
+      <span>J&amp;T Express</span>
+      <span>DHL Supply Chain</span>
+    </div>
+  </header>
+
+  <!-- Challenge 1 -->
+  <section class="challenge">
+    <div class="challenge-head">
+      <div class="titles">
+        <p class="challenge-num">Challenge 1</p>
+        <h2>Arsitektur Multi-Tenant</h2>
+        <h3>Satu gudang melayani beberapa brand, tanpa kebocoran data antar klien</h3>
+      </div>
+      <span class="status-badge done">Sudah diimplementasikan</span>
+    </div>
+    <ul class="points">
+      <li>Satu gudang (DC) melayani beberapa brand sekaligus.</li>
+      <li>Cegah kebocoran visibilitas data secara tidak sengaja antar klien.</li>
+      <li>Rancang mekanisme ganti tenant (client) tanpa menduplikasi navigasi.</li>
+    </ul>
+    <div class="assessment">
+      <h4>Status di kode</h4>
+      <p>
+        Ada <code>TenantSwitcher</code> (<code>src/components/shared/tenant-switcher.tsx</code>) yang
+        ditempatkan satu kali di top bar global (<code>__root.tsx</code>), berdampingan dengan
+        <code>RoleSwitcher</code> dan <code>ScenarioSelector</code>. Satu komponen ini mengatur
+        <code>currentTenantScope</code> di store global untuk semua halaman ops-manager, supervisor,
+        dan exec, tanpa perlu navigasi atau dropdown terpisah di setiap halaman.
+      </p>
+      <p>
+        Pencegahan kebocoran data ditangani lewat <code>lib/permissions.ts</code>: fungsi
+        <code>canSwitchTenant</code> membatasi siapa yang boleh berganti tenant (ops-manager,
+        supervisor, exec), sedangkan <code>assertTenantAccess</code> mengunci persona "client" hanya
+        ke <code>client_ids</code> miliknya sendiri. Jika tenant scope tidak cocok, route
+        <code>/client/*</code> menampilkan <code>EmptyState</code> "Access restricted" bukan data
+        klien lain.
+      </p>
+      <p>
+        <strong>Update:</strong> sebelumnya, memilih klien di <code>TenantSwitcher</code> tidak
+        terlihat efeknya di halaman Catalog dan Allocation karena kedua halaman itu belum membaca
+        <code>currentTenantScope</code>. Sekarang <code>src/routes/catalog.tsx</code> dan
+        <code>src/routes/allocation.tsx</code> sudah ikut memfilter datanya: memilih "Segar
+        Beverages" mengecilkan daftar SKU di Catalog dari 75 jadi sekitar 25 baris (kategori
+        beverages saja), dan mengecilkan kartu zona di Allocation dari 3 zona menjadi 1 zona
+        (JKT-SGB). Memilih "All clients" mengembalikan tampilan ke seluruh data lagi. Halaman
+        In transit dan Reconciliation sengaja tidak difilter karena workflow "close day"-nya butuh
+        melihat semua order lintas klien sekaligus.
+      </p>
+    </div>
+    <figure>
+      <img src="screenshots/1-multi-tenant.png" alt="Tenant switcher di top bar, terbuka menunjukkan daftar klien" />
+      <figcaption>
+        Halaman Allocation (persona Rina, DC Ops Manager), dengan tenant switcher "All clients /
+        Renyah Group / Segar Beverages / Bersih Personal Care" terbuka di top bar yang sama untuk
+        semua halaman DC.
+      </figcaption>
+    </figure>
+    <figure style="margin-top: 16px;">
+      <img src="screenshots/1-multi-tenant-filtered.png" alt="Halaman Allocation setelah tenant difilter ke Segar Beverages, hanya menampilkan 1 zona" />
+      <figcaption>
+        Setelah memilih "Segar Beverages" di tenant switcher: halaman Allocation hanya menampilkan
+        1 zona (JKT-SGB) dari 3 zona semula, dan tetap konsisten dengan halaman Catalog yang juga
+        otomatis terfilter ke SKU milik Segar Beverages.
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- Challenge 2 -->
+  <section class="challenge">
+    <div class="challenge-head">
+      <div class="titles">
+        <p class="challenge-num">Challenge 2</p>
+        <h2>Kepemilikan Inventori Bersama</h2>
+        <h3>Stok berada di DC yang sama, tetapi dimiliki klien yang berbeda</h3>
+      </div>
+      <span class="status-badge done">Sudah diimplementasikan</span>
+    </div>
+    <ul class="points">
+      <li>Inventori berada di DC yang sama tetapi milik pelanggan (klien) yang berbeda.</li>
+      <li>Bagaimana kepemilikan ini ditampilkan secara konsisten di seluruh sistem?</li>
+    </ul>
+    <div class="assessment">
+      <h4>Status di kode</h4>
+      <p>
+        Setiap entitas inti, SKU, zona gudang, alokasi kapasitas, dan estimasi stok, kini punya
+        <code>client_id</code> di <code>src/mocks/types.ts</code> (<code>SKU</code>,
+        <code>WarehouseZone</code>, <code>InferredStock</code>). Kepemilikan ini ditampilkan secara
+        seragam lewat komponen <code>ClientBadge</code>
+        (<code>src/components/shared/client-badge.tsx</code>), yang menunjukkan kode klien dengan
+        warna sesuai kategori (snacks, beverages, toiletries).
+      </p>
+      <p>
+        Badge ini dipakai di halaman Catalog (per baris SKU), halaman Allocation (per kartu zona
+        gudang), dan halaman Supervisor (per order/exception). Jadi siapa pun yang melihat satu unit
+        inventori atau satu order langsung tahu klien mana pemiliknya, tanpa perlu membuka halaman
+        lain.
+      </p>
+    </div>
+    <figure>
+      <img src="screenshots/2-inventory-ownership.png" alt="Halaman Catalog dengan badge klien per SKU" />
+      <figcaption>
+        Halaman Catalog: setiap SKU menampilkan badge klien (RYG untuk Renyah Group) di samping
+        kategori, burn rate, dan ambang reorder-nya.
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- Challenge 3 -->
+  <section class="challenge">
+    <div class="challenge-head">
+      <div class="titles">
+        <p class="challenge-num">Challenge 3</p>
+        <h2>Visibilitas untuk Klien Eksternal</h2>
+        <h3>Reuse komponen reporting internal, dengan batas izin akses yang jelas</h3>
+      </div>
+      <span class="status-badge done">Sudah diimplementasikan</span>
+    </div>
+    <ul class="points">
+      <li>Pelanggan eksternal butuh dashboard sendiri.</li>
+      <li>Komponen reporting internal harus dipakai ulang, tanpa melanggar batas izin.</li>
+    </ul>
+    <div class="assessment">
+      <h4>Status di kode</h4>
+      <p>
+        Ada persona baru "Pak Yanto, Client Ops Lead" dengan route group
+        <code>/client</code> (<code>client/index.tsx</code>, <code>client/inventory.tsx</code>,
+        <code>client/orders.tsx</code>), masing-masing sebagai "Overview", "Inventory", dan "Orders"
+        di sidebar-nya sendiri. Halaman-halaman ini memakai ulang komponen yang sama dengan sisi DC:
+        <code>Card</code>, <code>Table</code>, <code>Badge</code>, <code>OrderStatusBadge</code>,
+        <code>SLABadge</code>, dan <code>ClientBadge</code>, hanya datanya difilter ke klien yang
+        relevan lewat <code>selectOrdersForClient</code> dan <code>selectInferredStockForClient</code>.
+      </p>
+      <p>
+        Batas izin diterapkan di <code>client/route.tsx</code> (<code>ClientLayout</code>): jika
+        <code>currentTenantScope</code> bukan klien yang terkunci untuk user "client", halaman
+        menampilkan <code>EmptyState</code> "Access restricted" dan tidak merender <code>&lt;Outlet/&gt;</code>
+        sama sekali, jadi tidak ada data klien lain yang ter-render meski sempat ter-fetch.
+      </p>
+    </div>
+    <figure>
+      <img src="screenshots/3-client-portal.png" alt="Dashboard client portal untuk Renyah Group" />
+      <figcaption>
+        Persona client (Pak Yanto, Renyah Group), dashboard "Overview" memakai pola card KPI dan
+        ringkasan status order yang sama dengan halaman DC internal.
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- Challenge 4 -->
+  <section class="challenge">
+    <div class="challenge-head">
+      <div class="titles">
+        <p class="challenge-num">Challenge 4</p>
+        <h2>Manajemen SLA Kontrak</h2>
+        <h3>SLA berbeda per klien, dan eksepsi perlu diprioritaskan berdasarkan SLA</h3>
+      </div>
+      <span class="status-badge done">Sudah diimplementasikan</span>
+    </div>
+    <ul class="points">
+      <li>Klien berbeda punya jaminan pengiriman (delivery guarantee) yang berbeda.</li>
+      <li>Eksepsi pengiriman perlu diprioritaskan berdasarkan SLA.</li>
+    </ul>
+    <div class="assessment">
+      <h4>Status di kode</h4>
+      <p>
+        Tiap klien punya kontrak SLA (<code>SLAContract</code>: <code>tier</code> standard/priority/express,
+        <code>promised_delivery_hours</code>, <code>target_on_time_pct</code>) di
+        <code>src/mocks/fixtures/sla-contracts.ts</code>. Selector <code>selectOrderSLA</code> menghitung
+        status order: <code>on_track</code>, <code>at_risk</code>, atau <code>breached</code>, lengkap dengan
+        waktu jatuh tempo, dan ditampilkan lewat komponen <code>SLABadge</code> dengan warna sesuai status
+        (hijau, kuning, merah).
+      </p>
+      <p>
+        SLA-aware prioritization sudah ada di halaman Supervisor: <code>selectOrdersBySLAUrgency</code>
+        mengurutkan order/eksepsi berdasarkan urgensi SLA, sehingga order yang berisiko breach SLA
+        ditampilkan lebih dulu kepada supervisor. Di sisi client, halaman Orders menampilkan
+        <code>SLABadge</code> per order, dan Overview menghitung KPI "On-time delivery" serta
+        "SLA at risk or breached" terhadap target kontrak.
+      </p>
+    </div>
+    <figure>
+      <img src="screenshots/4-sla-client-orders.png" alt="Halaman Orders client menampilkan badge SLA per order" />
+      <figcaption>
+        Halaman Orders milik klien: setiap order menunjukkan status SLA ("On track, due in 12h")
+        relatif terhadap kontrak Priority milik Renyah Group (promised delivery 12 jam, target on-time 95%).
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- Challenge 5 -->
+  <section class="challenge">
+    <div class="challenge-head">
+      <div class="titles">
+        <p class="challenge-num">Challenge 5</p>
+        <h2>Perencanaan Kapasitas Gudang</h2>
+        <h3>Tampilan replenishment yang ada perlu berkembang jadi tampilan alokasi gudang</h3>
+      </div>
+      <span class="status-badge done">Sudah diimplementasikan</span>
+    </div>
+    <ul class="points">
+      <li>Tampilan replenishment yang sudah ada harus berkembang menjadi tampilan alokasi kapasitas
+        gudang.</li>
+    </ul>
+    <div class="assessment">
+      <h4>Status di kode</h4>
+      <p>
+        Ditambahkan tipe data baru <code>WarehouseZone</code> (zona gudang per DC, dimiliki satu
+        klien) dan <code>CapacityAllocation</code> (<code>allocated_units</code> vs
+        <code>used_units</code> per zona), dengan fixture di
+        <code>src/mocks/fixtures/warehouse-zones.ts</code> dan
+        <code>src/mocks/fixtures/capacity-allocations.ts</code>.
+      </p>
+      <p>
+        Halaman baru <code>/allocation</code> menampilkan kartu per zona dengan progress bar
+        utilisasi (hijau di bawah 70%, kuning 70-90%, merah di atas 90% atau over-capacity), serta
+        banner peringatan untuk zona yang mendekati atau melewati kapasitas. Halaman ini berdiri
+        sebagai item navigasi baru "Allocation" di grup "DC Operations", berdampingan dengan
+        "Suggested orders" yang sudah ada sebelumnya, jadi ops-manager punya dua sudut pandang:
+        permintaan replenishment per SKU (suggested orders) dan kapasitas fisik per klien
+        (allocation).
+      </p>
+    </div>
+    <figure>
+      <img src="screenshots/5-capacity-allocation.png" alt="Halaman Allocation menunjukkan kapasitas per zona klien" />
+      <figcaption>
+        Halaman Allocation baru: kapasitas DC Jakarta Cakung per zona klien (Renyah Group, Segar
+        Beverages, Bersih Personal Care), dengan peringatan zona di atas 90% utilisasi dan badge
+        "Over capacity" untuk Segar Beverages, Bandung.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section class="tech">
+    <h2>Technical Considerations</h2>
+    <p>Lima area teknis yang diminta, dan status implementasinya di mockup.</p>
+    <div class="tech-grid">
+      <div class="tech-card">
+        <h4><span class="check">✓</span>Tenant-based data model</h4>
+        <p><code>client_id</code> ada di <code>SKU</code>, <code>WarehouseZone</code>, dan
+          <code>InferredStock</code>; <code>currentTenantScope</code> sebagai state global untuk
+          memfilter data lintas halaman.</p>
+      </div>
+      <div class="tech-card">
+        <h4><span class="check">✓</span>Client ownership metadata</h4>
+        <p>Fixture <code>Client</code> (nama, kode, kategori, kontak) plus komponen
+          <code>ClientBadge</code> yang dipakai ulang di Catalog, Allocation, Supervisor, dan
+          Client Orders.</p>
+      </div>
+      <div class="tech-card">
+        <h4><span class="check">✓</span>SLA configuration engine</h4>
+        <p><code>SLAContract</code> per klien (tier, jam pengiriman, target on-time) plus selector
+          <code>selectOrderSLA</code> dan <code>selectOrdersBySLAUrgency</code> untuk status dan
+          prioritas SLA.</p>
+      </div>
+      <div class="tech-card">
+        <h4><span class="check">✓</span>Role-based permissions</h4>
+        <p><code>src/lib/permissions.ts</code>: <code>canSwitchTenant</code>,
+          <code>canConfirmOrders</code>, <code>canDispatchWave</code>, <code>canEditCatalog</code>,
+          dan <code>assertTenantAccess</code> untuk kunci tenant per role.</p>
+      </div>
+      <div class="tech-card">
+        <h4><span class="check">✓</span>Warehouse capacity entities</h4>
+        <p><code>WarehouseZone</code> dan <code>CapacityAllocation</code> sebagai entitas baru,
+          dirender di halaman <code>/allocation</code> dengan indikator utilisasi dan peringatan
+          over-capacity.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="summary">
+    <h2>Ringkasan</h2>
+    <p>
+      Kelima design challenge dan kelima technical consideration sudah punya representasi konkret di
+      kode (commit <code>85e6a83</code> "refactor kdmp into multi-tenant 3PL platform" dan
+      <code>5131d5f</code> "add tenant scoping, SLA badges, and RBAC to 3PL surfaces"). Karena ini
+      mockup frontend-only dengan data mock, "SLA configuration engine" dan "tenant-based data
+      model" diwujudkan sebagai tipe data, fixture, dan selector murni di sisi klien (bukan service
+      backend terpisah), sesuai batasan proyek di <code>CLAUDE.md</code>.
+    </p>
+  </div>
+
+</div>
+</body>
+</html>

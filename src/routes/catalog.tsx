@@ -76,6 +76,7 @@ function CatalogPage() {
   const upsertSku = useMockStore((s) => s.upsertSku)
   const deleteSku = useMockStore((s) => s.deleteSku)
   const currentRole = useMockStore((s) => s.currentRole)
+  const currentTenantScope = useMockStore((s) => s.currentTenantScope)
   const canEdit = canEditCatalog(currentRole)
 
   const [category, setCategory] = React.useState<SKUCategory | "all">("all")
@@ -87,6 +88,8 @@ function CatalogPage() {
   const filtered = React.useMemo(() => {
     const q = search.trim().toLowerCase()
     return skus.filter((s) => {
+      if (currentTenantScope !== "all" && s.client_id !== currentTenantScope)
+        return false
       if (category !== "all" && s.category !== category) return false
       if (
         q &&
@@ -96,7 +99,7 @@ function CatalogPage() {
         return false
       return true
     })
-  }, [skus, category, search])
+  }, [skus, category, search, currentTenantScope])
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
@@ -150,7 +153,7 @@ function CatalogPage() {
       {filtered.length === 0 ? (
         <EmptyState
           title="No SKUs match"
-          description="Switch categories or clear the search. Use Add SKU to define a new one."
+          description="Switch categories, clear the search, or switch client. Use Add SKU to define a new one."
         />
       ) : (
         <Card className="p-0">

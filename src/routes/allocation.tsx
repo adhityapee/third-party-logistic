@@ -36,8 +36,13 @@ function AllocationPage() {
   const state = useMockStore()
   const activeDcId = getActiveDcId(state)
   const dc = state.dcs.find((d) => d.id === activeDcId)
-  const zones = selectCapacityAllocationsForDC(state, activeDcId)
-  const alerts = selectCapacityAlerts(state)
+  const currentTenantScope = state.currentTenantScope
+  const zones = selectCapacityAllocationsForDC(state, activeDcId).filter(
+    (z) => currentTenantScope === "all" || z.client?.id === currentTenantScope
+  )
+  const alerts = selectCapacityAlerts(state).filter(
+    (a) => currentTenantScope === "all" || a.client?.id === currentTenantScope
+  )
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
